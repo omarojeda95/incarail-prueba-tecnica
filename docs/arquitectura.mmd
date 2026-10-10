@@ -1,7 +1,7 @@
 flowchart LR
-    user(["👤 Usuario<br/>móvil / escritorio"])
+    usuario(["👤 Usuario<br/>móvil / escritorio"])
 
-    subgraph browser["Navegador"]
+    subgraph navegador["Navegador"]
         spa["<b>SPA Vue 3</b><br/>Vue Router · Pinia · Vuetify<br/>TypeScript · CASL<br/><i>token Bearer en localStorage</i>"]
     end
 
@@ -10,34 +10,34 @@ flowchart LR
 
         subgraph api["API Laravel 13 · PHP-FPM 8.5"]
             direction TB
-            http["<b>HTTP</b><br/>auth:api (Passport) · active · can:permiso<br/>Form Requests · Controllers delgados<br/>Resources · ApiExceptionRenderer"]
-            app["<b>Aplicación</b><br/>Comandos: ImportCompetition, SyncCompetitionCatalog<br/>Consultas: CompetitionCatalog, CompetitionDetail,<br/>TeamQueries, PlayerQueries<br/>Acceso: IssueAccessToken, UserManagement, RoleManagement"]
-            domain["<b>Dominio</b><br/>Puerto FootballDataProvider<br/>DTOs · Excepciones · Evento CompetitionImported"]
-            infra["<b>Infraestructura</b><br/>FootballDataClient (adaptador HTTP)<br/>SlidingWindowRequestBudget"]
-            http --> app --> domain
-            infra -. implementa .-> domain
+            http["<b>HTTP</b><br/>auth:api (Passport) · activo · can:permiso<br/>Form Requests · Controladores delgados<br/>Resources · RenderizadorErroresApi"]
+            aplicacion["<b>Aplicacion</b><br/>Comandos: ImportarLiga, SincronizarCatalogoLigas<br/>Consultas: CatalogoLigas, DetalleLiga,<br/>ConsultasEquipos, ConsultasJugadores<br/>Acceso: EmitirTokenAcceso, GestionUsuarios, GestionRoles"]
+            dominio["<b>Dominio</b><br/>Puerto ProveedorDatosFutbol<br/>DTOs · Excepciones · Evento LigaImportada"]
+            infra["<b>Infraestructura</b><br/>ClienteFootballData (adaptador HTTP)<br/>PresupuestoVentanaDeslizante"]
+            http --> aplicacion --> dominio
+            infra -. implementa .-> dominio
         end
 
-        worker["<b>Worker</b><br/>queue:work<br/>ImportCompetitionJob<br/>(release hasta que haya cupo)"]
-        scheduler["<b>Scheduler</b><br/>sync catálogo diario<br/>refresh ligas vencidas c/hora"]
-        pg[("<b>PostgreSQL</b><br/>Eloquent: competitions, teams,<br/>players, competition_team<br/>users · roles · permissions<br/>oauth_* (Passport)")]
+        worker["<b>Worker</b><br/>queue:work<br/>ImportarLigaJob<br/>(release hasta que haya cupo)"]
+        scheduler["<b>Scheduler</b><br/>sincroniza catálogo a diario<br/>refresca ligas vencidas c/hora<br/>passport:purge a diario"]
+        pg[("<b>PostgreSQL</b><br/>Eloquent: ligas, equipos,<br/>liga_equipo, jugadores, importaciones_liga<br/>usuarios · roles · permissions<br/>oauth_* (Passport)")]
         redis[("<b>Redis</b><br/>caché · cola<br/><b>presupuesto 10 req/min</b><br/>(ventana deslizante + lock)")]
     end
 
     fd["<b>football-data.org</b><br/>API v4 · X-Auth-Token<br/>10 req/min (plan gratuito)"]
 
-    user --> spa
+    usuario --> spa
     spa -- "HTTPS JSON<br/>Authorization: Bearer" --> nginx
     nginx -- FastCGI --> http
-    app -- Eloquent --> pg
-    infra -- "acquire() antes de cada llamada" --> redis
-    infra -- "1 request por liga" --> fd
-    app -- "dispatch job si no hay cupo" --> redis
+    aplicacion -- Eloquent --> pg
+    infra -- "reservar() antes de cada llamada" --> redis
+    infra -- "1 petición por liga" --> fd
+    aplicacion -- "encola el job si no hay cupo" --> redis
     worker -- consume --> redis
-    worker --> app
-    scheduler --> app
+    worker --> aplicacion
+    scheduler --> aplicacion
 
-    classDef ext fill:#fff4e0,stroke:#c8963e,color:#333
-    classDef store fill:#e8f1f8,stroke:#0b3c5d,color:#333
-    class fd ext
-    class pg,redis store
+    classDef externo fill:#fff4e0,stroke:#c8963e,color:#333
+    classDef almacen fill:#e8f1f8,stroke:#0b3c5d,color:#333
+    class fd externo
+    class pg,redis almacen

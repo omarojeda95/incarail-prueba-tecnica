@@ -6,26 +6,26 @@ sequenceDiagram
     participant DB as PostgreSQL
 
     U->>S: correo + contraseña
-    S->>A: POST /auth/login
-    A->>DB: buscar usuario · Hash::check (bcrypt)
+    S->>A: POST /auth/iniciar-sesion
+    A->>DB: buscar en usuarios · Hash::check (bcrypt)
     alt credenciales inválidas
-        A-->>S: 401 invalid_credentials
+        A-->>S: 401 credenciales_invalidas
     else usuario desactivado
-        A-->>S: 403 account_disabled
+        A-->>S: 403 cuenta_desactivada
     else ok
         A->>DB: createToken() → oauth_access_tokens
-        A-->>S: access_token (JWT) · expires_at · user · abilities [{action, subject}]
-        S->>S: localStorage(token) · ability.update(rules)
+        A-->>S: token_acceso (JWT) · expira_en · usuario · habilidades [{action, subject}]
+        S->>S: localStorage(token) · habilidades.update(reglas)
     end
-    Note over S: El menú, las rutas (beforeEach) y los botones<br/>usan ability.can(action, subject)
-    S->>A: GET /users (Authorization: Bearer)
-    A->>A: auth:api → active → can:users.read
+    Note over S: El menú, las rutas (beforeEach) y los botones<br/>usan habilidades.can(accion, sujeto)
+    S->>A: GET /usuarios (Authorization: Bearer)
+    A->>A: auth:api → activo → can:usuarios.ver
     alt sin permiso
-        A-->>S: 403 forbidden → mensaje claro en la SPA
+        A-->>S: 403 sin_permiso → mensaje claro en la SPA
     else token vencido / revocado
-        A-->>S: 401 unauthenticated → SPA limpia sesión y vuelve al login
+        A-->>S: 401 no_autenticado → la SPA limpia la sesión y vuelve al inicio de sesión
     else ok
         A-->>S: 200 usuarios
     end
     U->>S: Cerrar sesión
-    S->>A: POST /auth/logout → token revocado
+    S->>A: POST /auth/cerrar-sesion → token revocado

@@ -1,77 +1,79 @@
 erDiagram
-    competitions ||--o{ competition_team : "tiene"
-    teams ||--o{ competition_team : "juega en"
-    teams ||--o{ players : "plantel"
-    competitions ||--o{ competition_imports : "auditoría"
-    users ||..o{ model_has_roles : "polimórfica, sin FK"
+    ligas ||--o{ liga_equipo : "tiene"
+    equipos ||--o{ liga_equipo : "juega en"
+    equipos ||--o{ jugadores : "plantel"
+    ligas ||--o{ importaciones_liga : "auditoría"
+    usuarios ||..o{ model_has_roles : "polimórfica, sin FK"
     roles ||--o{ model_has_roles : ""
     roles ||--o{ role_has_permissions : ""
     permissions ||--o{ role_has_permissions : ""
-    users ||..o{ oauth_access_tokens : "sesiones (lógica, sin FK)"
+    usuarios ||..o{ oauth_access_tokens : "sesiones (lógica, sin FK)"
 
-    competitions {
+    ligas {
         bigint id PK "id de football-data"
-        text name
-        string code UK "PL, PD, SA..."
-        string type
-        text emblem
-        string plan "TIER_ONE..FOUR"
-        text area_name
-        date season_start
-        date season_end
-        smallint current_matchday
-        timestamp teams_synced_at "null = no importada (indexado)"
+        text nombre
+        varchar codigo UK "PL, PD, SA..."
+        varchar tipo
+        text emblema
+        varchar plan "TIER_ONE..FOUR"
+        text area_nombre
+        varchar area_codigo
+        text area_bandera
+        date temporada_inicio
+        date temporada_fin
+        smallint jornada_actual
+        timestamp equipos_sincronizados_en "null = no importada (indexado)"
     }
-    teams {
+    equipos {
         bigint id PK "id de football-data"
-        text name "btree + trigram GIN"
-        text short_name
-        string tla
-        text crest
-        text venue
-        smallint founded
-        text club_colors
-        text coach_name
+        text nombre "btree + trigram GIN"
+        text nombre_corto
+        varchar sigla
+        text escudo
+        text estadio
+        smallint fundacion
+        text colores
+        text entrenador
     }
-    competition_team {
-        bigint competition_id PK, FK
-        bigint team_id PK, FK "+ índice propio"
-        string season
+    liga_equipo {
+        bigint liga_id PK, FK
+        bigint equipo_id PK, FK "+ índice propio"
+        varchar temporada
     }
-    players {
+    jugadores {
         bigint id PK "id de football-data"
-        bigint team_id FK "indexado"
-        text name "btree + trigram GIN"
-        text position
-        smallint shirt_number "nullable"
-        date date_of_birth
-        text nationality
+        bigint equipo_id FK "indexado"
+        text nombre "btree + trigram GIN"
+        text posicion
+        smallint numero_camiseta "nullable"
+        date fecha_nacimiento
+        text nacionalidad
     }
-    competition_imports {
+    importaciones_liga {
         bigint id PK
-        bigint competition_id FK "índice (competition_id, imported_at)"
-        int teams_count
-        int players_count
-        string trigger "request/queue/manual/schedule/console"
-        timestamp imported_at
+        bigint liga_id FK "índice (liga_id, importado_en)"
+        int cantidad_equipos
+        int cantidad_jugadores
+        varchar origen "peticion/cola/manual/programada/consola"
+        timestamp importado_en
     }
-    users {
+    usuarios {
         bigint id PK
-        string name
-        string email UK "único también en lower(email)"
-        string password "bcrypt"
-        boolean is_active
-        timestamp deactivated_at
+        varchar nombre
+        varchar correo UK "único en lower(correo)"
+        varchar contrasena "bcrypt"
+        boolean activo
+        timestamp desactivado_en
     }
     roles {
         bigint id PK
-        string name "admin, analista, consulta..."
-        string guard_name "api"
+        varchar name "admin, analista, consulta..."
+        varchar guard_name "api"
     }
     permissions {
         bigint id PK
-        string name "competitions.read, users.create..."
-        string guard_name "api"
+        varchar name "ligas.ver, usuarios.crear..."
+        varchar guard_name "api"
     }
     model_has_roles {
         bigint role_id FK
@@ -82,7 +84,7 @@ erDiagram
         bigint role_id FK
     }
     oauth_access_tokens {
-        string id PK
+        varchar id PK
         bigint user_id "indexado, sin FK (Passport)"
         boolean revoked
         timestamp expires_at
