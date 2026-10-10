@@ -11,6 +11,7 @@ use App\Infrastructure\FootballData\RequestBudget;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\Concerns\FakesFootballData;
 use Tests\TestCase;
@@ -104,27 +105,28 @@ class FootballDataClientTest extends TestCase
         $this->assertSame(0, $this->app->make(RequestBudget::class)->remaining());
     }
 
-    #[Test]
-    public function it_translates_provider_errors_into_domain_exceptions(): void
+    /** @return array<string, array{int, class-string}> */
+    public static function providerErrors(): array
     {
-        $cases = [
-            [404, FootballResourceNotFound::class],
-            [400, FootballResourceNotFound::class],
-            [403, CompetitionNotAvailable::class],
-            [500, FootballDataUnavailable::class],
-            [401, FootballDataUnavailable::class],
+        return [
+            'not found' => [404, FootballResourceNotFound::class],
+            'bad request' => [400, FootballResourceNotFound::class],
+            'not in our plan' => [403, CompetitionNotAvailable::class],
+            'server error' => [500, FootballDataUnavailable::class],
+            'invalid token' => [401, FootballDataUnavailable::class],
         ];
+    }
 
-        foreach ($cases as [$status, $exception]) {
-            Http::fake(['*' => Http::response(['message' => 'error'], $status)]);
+    /** @param  class-string<\Throwable>  $exception */
+    #[Test]
+    #[DataProvider('providerErrors')]
+    public function it_translates_provider_errors_into_domain_exceptions(int $status, string $exception): void
+    {
+        Http::fake(['*' => Http::response(['message' => 'error'], $status)]);
 
-            try {
-                $this->client()->competitionSquads(9999);
-                $this->fail("Expected {$exception} for HTTP {$status}.");
-            } catch (\Throwable $e) {
-                $this->assertInstanceOf($exception, $e, "HTTP {$status}");
-            }
-        }
+        $this->expectException($exception);
+
+        $this->client()->competitionSquads(9999);
     }
 
     #[Test]
