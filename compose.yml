@@ -1,0 +1,109 @@
+# Whole stack with one command:  cp .env.example .env && docker compose up -d --build
+#   SPA  -> http://localhost:8081   (nginx serves the Vue build and proxies /api)
+#   API  -> http://localhost:8001   (nginx + PHP-FPM 8.5)
+
+x-backend: &backend
+  build:
+    context: .
+    dockerfile: docker/php/Dockerfile
+  image: incarail-backend
+  restart: unless-stopped
+  environment: &backend-env
+    APP_NAME: "Inca Rail Football API"
+    APP_ENV: local
+    APP_DEBUG: "false"
+    APP_URL: http://localhost:${API_PORT:-8001}
+    APP_LOCALE: es
+    LOG_CHANNEL: stderr
+    LOG_LEVEL: info
+    DB_CONNECTION: pgsql
+    DB_HOST: postgres
+    DB_PORT: 5432
+    DB_DATABASE: incarail
+    DB_USERNAME: incarail
+    DB_PASSWORD: incarail
+    REDIS_CLIENT: phpredis
+    REDIS_HOST: redis
+    CACHE_STORE: redis
+    QUEUE_CONNECTION: redis
+    SESSION_DRIVER: array
+    CORS_ALLOWED_ORIGINS: http://localhost:5173,http://localhost:${SPA_PORT:-8081}
+    FOOTBALL_DATA_TOKEN: ${FOOTBALL_DATA_TOKEN:-}
+    FOOTBALL_DATA_MAX_REQUESTS_PER_MINUTE: 10
+  volumes:
+    - storage:/var/www/backend/storage
+  depends_on:
+    postgres:
+      condition: service_healthy
+    redis:
+      condition: service_healthy
+
+services:
+  app:
+    <<: *backend
+    environment:
+      <<: *backend-env
+      CONTAINER_ROLE: app
+    healthcheck:
+      test: ["CMD", "test", "-f", "/var/www/backend/storage/app/.ready"]
+      interval: 5s
+      timeout: 3s
+      retries: 60
+      start_period: 20s
+
+  # Runs the queued league imports, always inside the request budget.
+  worker:
+    <<: *backend
+    environment:
+      <<: *backend-env
+      CONTAINER_ROLE: worker
+    command: ["php", "artisan", "queue:work", "--sleep=3", "--tries=0", "--max-time=3600"]
+
+  # Daily catalog sync + hourly refresh of stale leagues.
+  scheduler:
+    <<: *backend
+    environment:
+      <<: *backend-env
+      CONTAINER_ROLE: scheduler
+    command: ["php", "artisan", "schedule:work"]
+
+  web:
+    build:
+      context: .
+      dockerfile: docker/nginx/Dockerfile
+    image: incarail-web
+    restart: unless-stopped
+    ports:
+      - "${API_PORT:-8001}:80"
+      - "${SPA_PORT:-8081}:8080"
+    depends_on:
+      app:
+        condition: service_healthy
+
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: incarail
+      POSTGRES_USER: incarail
+      POSTGRES_PASSWORD: incarail
+    volumes:
+      - postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U incarail -d incarail"]
+      interval: 3s
+      timeout: 3s
+      retries: 30
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 3s
+      timeout: 3s
+      retries: 30
+
+volumes:
+  postgres:
+  storage:

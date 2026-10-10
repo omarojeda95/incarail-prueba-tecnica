@@ -57,7 +57,7 @@ final class FootballDataClient implements FootballDataProvider
     private function get(string $path): array
     {
         if (blank($this->token)) {
-            throw new FootballDataUnavailable('FOOTBALL_DATA_TOKEN is not configured.');
+            throw FootballDataUnavailable::notConfigured();
         }
 
         $this->budget->acquire();

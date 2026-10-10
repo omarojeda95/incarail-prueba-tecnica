@@ -224,6 +224,14 @@ class FootballEndpointsTest extends TestCase
     }
 
     #[Test]
+    public function a_missing_token_is_reported_explicitly(): void
+    {
+        config(['football.token' => null]);
+
+        $this->assertApiError($this->getJson('/competitions'), 503, 'football_data_not_configured');
+    }
+
+    #[Test]
     public function stored_data_is_served_even_without_a_football_data_token(): void
     {
         config(['football.token' => null]);

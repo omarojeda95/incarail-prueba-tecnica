@@ -61,9 +61,7 @@ final class ApiExceptionRenderer
             $e instanceof MethodNotAllowedHttpException => $this->error(405, 'method_not_allowed', 'Método HTTP no permitido para esta ruta.', headers: $e->getHeaders()),
             $e instanceof ThrottleRequestsException => $this->tooManyRequests($e),
             $e instanceof FootballDataRateLimited => $this->footballRateLimited($e),
-            $e instanceof FootballDataUnavailable => $e->connectionFailed
-                ? $this->error(503, 'football_data_unavailable', 'No pudimos conectarnos con football-data.org. Intenta nuevamente en unos minutos.')
-                : $this->error(502, 'football_data_error', 'football-data.org respondió con un error. Intenta nuevamente en unos minutos.'),
+            $e instanceof FootballDataUnavailable => $this->footballUnavailable($e),
             $e instanceof FootballResourceNotFound => $this->error(404, 'competition_not_found', 'La liga no existe en football-data.org.'),
             $e instanceof CompetitionNotAvailable => $this->error(403, 'competition_not_in_plan', 'Esta liga no está incluida en el plan gratuito de football-data.org.'),
             $e instanceof AccessRuleViolation => $this->error(409, 'conflict', $e->getMessage()),
@@ -81,6 +79,15 @@ final class ApiExceptionRenderer
         $retryAfter = (int) ($e->getHeaders()['Retry-After'] ?? 60);
 
         return $this->error(429, 'too_many_requests', "Demasiadas solicitudes. Intenta nuevamente en {$retryAfter} segundos.", ['retry_after' => $retryAfter], $e->getHeaders());
+    }
+
+    private function footballUnavailable(FootballDataUnavailable $e): JsonResponse
+    {
+        return match (true) {
+            $e->notConfigured => $this->error(503, 'football_data_not_configured', 'La API no tiene configurado el token de football-data.org (FOOTBALL_DATA_TOKEN en .env).'),
+            $e->connectionFailed => $this->error(503, 'football_data_unavailable', 'No pudimos conectarnos con football-data.org. Intenta nuevamente en unos minutos.'),
+            default => $this->error(502, 'football_data_error', 'football-data.org respondió con un error. Intenta nuevamente en unos minutos.'),
+        };
     }
 
     private function footballRateLimited(FootballDataRateLimited $e): JsonResponse
@@ -108,6 +115,6 @@ final class ApiExceptionRenderer
                 'message' => $message,
                 'details' => $details ?: null,
             ], fn ($value) => $value !== null),
-        ], $status, $headers);
+        ], $status, $headers, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     }
 }
