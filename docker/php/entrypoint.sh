@@ -32,6 +32,10 @@ if [ -z "$APP_KEY" ]; then
     export APP_KEY
 fi
 
+# Commands run later with "docker compose exec" do not inherit the exported
+# key, so leave it in the container's .env (the rest comes from compose).
+echo "APP_KEY=$APP_KEY" > .env
+
 if [ "$ROLE" = "app" ]; then
     echo "Waiting for PostgreSQL at ${DB_HOST}:${DB_PORT}..."
     until pg_isready -q -h "$DB_HOST" -p "${DB_PORT:-5432}" -U "$DB_USERNAME"; do sleep 1; done
