@@ -2,7 +2,6 @@
 
 namespace App\Application\Football;
 
-use App\Domain\Football\Data\CompetitionData;
 use App\Domain\Football\Ports\FootballDataProvider;
 use App\Models\Competition;
 use Illuminate\Support\Carbon;

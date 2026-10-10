@@ -5,8 +5,8 @@ namespace App\Domain\Football\Ports;
 use App\Domain\Football\Data\CompetitionData;
 use App\Domain\Football\Data\CompetitionSquads;
 use App\Domain\Football\Exceptions\CompetitionNotAvailable;
-use App\Domain\Football\Exceptions\FootballDataUnavailable;
 use App\Domain\Football\Exceptions\FootballDataRateLimited;
+use App\Domain\Football\Exceptions\FootballDataUnavailable;
 use App\Domain\Football\Exceptions\FootballResourceNotFound;
 
 /**

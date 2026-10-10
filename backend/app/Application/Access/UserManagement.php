@@ -16,6 +16,7 @@ final class UserManagement
                 'name' => $data['name'],
                 'email' => strtolower($data['email']),
                 'password' => $data['password'],
+                'is_active' => true,
             ]);
             $user->syncRoles($data['roles'] ?? []);
 
