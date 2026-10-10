@@ -34,6 +34,6 @@ class Team extends Model
     /** @return BelongsToMany<Competition, $this> */
     public function competitions(): BelongsToMany
     {
-        return $this->belongsToMany(Competition::class)->withPivot('season')->withTimestamps();
+        return $this->belongsToMany(Competition::class)->using(CompetitionTeam::class)->withPivot('season')->withTimestamps();
     }
 }

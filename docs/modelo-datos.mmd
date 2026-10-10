@@ -3,53 +3,53 @@ erDiagram
     teams ||--o{ competition_team : "juega en"
     teams ||--o{ players : "plantel"
     competitions ||--o{ competition_imports : "auditoría"
-    users ||--o{ model_has_roles : ""
+    users ||..o{ model_has_roles : "polimórfica, sin FK"
     roles ||--o{ model_has_roles : ""
     roles ||--o{ role_has_permissions : ""
     permissions ||--o{ role_has_permissions : ""
-    users ||--o{ oauth_access_tokens : "sesiones"
+    users ||..o{ oauth_access_tokens : "sesiones (lógica, sin FK)"
 
     competitions {
         bigint id PK "id de football-data"
-        string name
+        text name
         string code UK "PL, PD, SA..."
         string type
-        string emblem
+        text emblem
         string plan "TIER_ONE..FOUR"
-        string area_name
+        text area_name
         date season_start
         date season_end
         smallint current_matchday
-        timestamp teams_synced_at "null = no importada"
+        timestamp teams_synced_at "null = no importada (indexado)"
     }
     teams {
         bigint id PK "id de football-data"
-        string name
-        string short_name
+        text name "btree + trigram GIN"
+        text short_name
         string tla
-        string crest
-        string venue
+        text crest
+        text venue
         smallint founded
-        string club_colors
-        string coach_name
+        text club_colors
+        text coach_name
     }
     competition_team {
         bigint competition_id PK, FK
-        bigint team_id PK, FK
+        bigint team_id PK, FK "+ índice propio"
         string season
     }
     players {
         bigint id PK "id de football-data"
-        bigint team_id FK
-        string name
-        string position
+        bigint team_id FK "indexado"
+        text name "btree + trigram GIN"
+        text position
         smallint shirt_number "nullable"
         date date_of_birth
-        string nationality
+        text nationality
     }
     competition_imports {
         bigint id PK
-        bigint competition_id FK
+        bigint competition_id FK "índice (competition_id, imported_at)"
         int teams_count
         int players_count
         string trigger "request/queue/manual/schedule/console"
@@ -58,7 +58,7 @@ erDiagram
     users {
         bigint id PK
         string name
-        string email UK
+        string email UK "único también en lower(email)"
         string password "bcrypt"
         boolean is_active
         timestamp deactivated_at
@@ -75,7 +75,7 @@ erDiagram
     }
     model_has_roles {
         bigint role_id FK
-        bigint model_id FK
+        bigint model_id "id del usuario (polimórfica)"
     }
     role_has_permissions {
         bigint permission_id FK
@@ -83,7 +83,7 @@ erDiagram
     }
     oauth_access_tokens {
         string id PK
-        bigint user_id FK
+        bigint user_id "indexado, sin FK (Passport)"
         boolean revoked
         timestamp expires_at
     }

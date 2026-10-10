@@ -72,6 +72,7 @@ class FootballEndpointsTest extends TestCase
         Player::factory()->create(['position' => 'Offence']);
         $this->getJson('/players')->assertJsonPath('filters.positions', ['Goalkeeper']);
 
+        Competition::factory()->create(['id' => 2021]);
         event(new CompetitionImported(2021, 1, 1, 'request'));
         $this->getJson('/players')->assertJsonPath('filters.positions', ['Goalkeeper', 'Offence']);
     }

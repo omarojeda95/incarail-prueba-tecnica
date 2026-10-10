@@ -8,6 +8,7 @@ use App\Domain\Football\Data\TeamData;
 use App\Domain\Football\Events\CompetitionImported;
 use App\Domain\Football\Ports\FootballDataProvider;
 use App\Models\Competition;
+use App\Models\CompetitionTeam;
 use App\Models\Player;
 use App\Models\Team;
 use DateTimeInterface;
@@ -29,10 +30,7 @@ final class ImportCompetition
         $competition = DB::transaction(function () use ($squads) {
             $competition = $this->saveCompetition($squads->competition);
             $this->saveTeamsAndPlayers($squads);
-
-            $competition->teams()->sync(
-                collect($squads->teams)->mapWithKeys(fn (TeamData $team) => [$team->id => ['season' => $squads->season]])->all()
-            );
+            $this->linkTeams($competition, $squads);
 
             return $competition;
         });
@@ -55,6 +53,39 @@ final class ImportCompetition
         return $competition;
     }
 
+    /**
+     * Upsert on the composite key instead of sync(): sync() reads the links,
+     * then deletes and inserts, so two imports of the same league running at
+     * the same time (a request and the queued job) could collide on the key.
+     */
+    private function linkTeams(Competition $competition, CompetitionSquads $squads): void
+    {
+        $teamIds = array_map(fn (TeamData $team) => $team->id, $squads->teams);
+        sort($teamIds);
+
+        if ($teamIds !== []) {
+            CompetitionTeam::query()->upsert(
+                array_map(fn (int $teamId) => [
+                    'competition_id' => $competition->id,
+                    'team_id' => $teamId,
+                    'season' => $squads->season,
+                ], $teamIds),
+                ['competition_id', 'team_id'],
+                ['season'],
+            );
+        }
+
+        // Teams that are no longer in the competition (relegated) lose the link.
+        CompetitionTeam::query()
+            ->where('competition_id', $competition->id)
+            ->whereNotIn('team_id', $teamIds)
+            ->delete();
+    }
+
+    /**
+     * Rows are written ordered by id so concurrent imports lock them in the
+     * same order (no deadlocks).
+     */
     private function saveTeamsAndPlayers(CompetitionSquads $squads): void
     {
         $teams = array_map(fn (TeamData $team) => [
@@ -87,6 +118,9 @@ final class ImportCompetition
                 ];
             }
         }
+
+        usort($teams, fn (array $a, array $b) => $a['id'] <=> $b['id']);
+        usort($players, fn (array $a, array $b) => $a['id'] <=> $b['id']);
 
         if ($teams !== []) {
             Team::query()->upsert($teams, ['id'], array_keys(array_diff_key($teams[0], ['id' => true])));

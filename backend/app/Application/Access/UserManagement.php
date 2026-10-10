@@ -14,7 +14,7 @@ final class UserManagement
         return DB::transaction(function () use ($data) {
             $user = User::query()->create([
                 'name' => $data['name'],
-                'email' => strtolower($data['email']),
+                'email' => $data['email'],
                 'password' => $data['password'],
                 'is_active' => true,
             ]);
@@ -34,7 +34,7 @@ final class UserManagement
         return DB::transaction(function () use ($user, $data) {
             $user->fill(array_filter([
                 'name' => $data['name'] ?? null,
-                'email' => isset($data['email']) ? strtolower($data['email']) : null,
+                'email' => $data['email'] ?? null,
                 'password' => $data['password'] ?? null,
             ]))->save();
 

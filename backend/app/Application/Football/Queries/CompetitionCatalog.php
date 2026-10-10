@@ -34,7 +34,7 @@ final class CompetitionCatalog
         }
 
         $competitions = Competition::query()
-            ->withCount('teams')
+            ->withCount('teamLinks as teams_count')
             ->when($filters['search'] ?? null, fn (Builder $query, string $search) => $query->where(
                 fn (Builder $query) => $query->whereLike('name', "%{$search}%")
                     ->orWhereLike('code', "%{$search}%")

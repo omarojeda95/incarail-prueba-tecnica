@@ -10,7 +10,7 @@ equipos y jugadores, y administrar usuarios, roles y permisos.
 | **Backend** | Laravel 13.35 · PHP 8.5 · Passport 13 · spatie/laravel-permission 8 · PostgreSQL 17 · Redis 7 |
 | **Frontend** | Vue 3.5 · TypeScript · Vue Router · Pinia · Vuetify 4 · CASL · Vite |
 | **Infra** | Docker Compose: nginx + PHP-FPM, worker de colas, scheduler, PostgreSQL y Redis (Linux/Alpine) |
-| **Calidad** | 78 pruebas PHPUnit (unitarias, integración y aceptación), 10 de Vitest, Pint, ESLint/Oxlint, Prettier, GitHub Actions |
+| **Calidad** | 86 pruebas PHPUnit (unitarias, integración y aceptación), 10 de Vitest, Pint, ESLint/Oxlint, Prettier, GitHub Actions |
 
 ---
 
@@ -302,7 +302,56 @@ consultas no tienen efectos y los comandos son los únicos que gastan cupo de fo
   liga–equipo es un pivote `competition_team` con la temporada; un equipo puede estar en varias ligas
   (Premier League y Champions).
 - De cada jugador se guarda nombre, posición, número de camiseta, fecha de nacimiento y nacionalidad.
-- Sin SQL escrito a mano: migraciones, modelos, relaciones, *scopes* (`#[Scope]`) y `upsert`.
+- Sin SQL escrito a mano en las consultas: migraciones, modelos, relaciones, *scopes* (`#[Scope]`) y `upsert`.
+  La única sentencia SQL literal es un DDL de migración (índice único sobre `lower(email)`) que el *schema
+  builder* de Laravel no puede expresar. Ver [Base de datos](#base-de-datos-revisión-y-rendimiento).
+
+### Base de datos: revisión y rendimiento
+
+Revisé el esquema como DBA: estructura real en PostgreSQL, el SQL exacto que genera Eloquent y su plan de
+ejecución (`EXPLAIN ANALYZE`) con un volumen sintético de **200 ligas, 5.000 equipos, 10.000 vínculos
+liga–equipo, 150.000 jugadores y 20.000 registros de importación**.
+
+| Caso de uso | Antes¹ | Ahora² | Causa y corrección |
+|---|---|---|---|
+| Detalle de liga (equipos + n.º de jugadores) | 654 ms | 9 ms | PostgreSQL no indexa las FK por sí solo: contaba jugadores recorriendo los 150.000 por cada equipo → índice en `players(team_id)` |
+| Equipos de una liga (paginado) | 264 ms | 8 ms | Misma causa → índices en `players(team_id)` y `competition_team(team_id)` |
+| Buscar jugadores por texto | 144 ms | 7 ms | `ILIKE '%texto%'` no usa un B-tree → índice **trigram** (`pg_trgm`, GIN) en `players.name` |
+| Buscar equipos por texto | 247 ms | 39 ms | Trigram en `teams.name` (la búsqueda también mira `short_name` y `tla`) |
+| Listado de ligas con n.º de equipos | 210 ms | 12 ms | `withCount('teams')` unía la tabla `teams` completa solo para contar → se cuentan las filas del pivote (`teamLinks`) |
+| Filtro de posiciones (`DISTINCT`) | 58 ms | ≈0 ms | Caché que se invalida con el evento `CompetitionImported` |
+
+¹ `EXPLAIN ANALYZE` de la consulta principal. ² Suma de todas las consultas del caso de uso, ejecutando el código y la
+migración reales. Las pruebas de `tests/Feature/Database` fijan estas reglas: toda FK de las tablas de fútbol tiene
+índice, existen los índices trigram (en PostgreSQL), el correo es único sin importar mayúsculas, etc.
+
+Otras correcciones de la revisión:
+
+- **Textos externos en `text`, no en `varchar(255)`.** Nombres, URLs de escudos, direcciones o colores vienen de
+  football-data y no los controlamos. Un valor de más de 255 caracteres hacía fallar *toda* la importación de la
+  liga (`value too long for type character varying(255)`, reproducido en una prueba). En PostgreSQL `text` y
+  `varchar` rinden igual. Los códigos de formato conocido (`PL`, `ARS`, `TIER_ONE`) mantienen tipos cortos.
+- **Importaciones concurrentes de la misma liga** (una petición y el job en cola): el vínculo liga–equipo se
+  escribe con `upsert` sobre la clave compuesta, en lugar de `sync()` (que lee, borra e inserta y podía chocar con la
+  PK). Además, las filas se escriben ordenadas por id para que dos transacciones bloqueen en el mismo orden y no haya
+  *deadlocks*.
+- **Correo único sin importar mayúsculas** a nivel de base (`unique (lower(email))`), además de normalizarlo en el
+  modelo.
+- **`oauth_access_tokens` no crece sin límite:** cada login crea un token; `passport:purge` corre a diario y borra
+  los revocados y vencidos.
+
+Decisiones que revisé y mantuve:
+
+- **Ids de football-data como PK** (en lugar de un id propio más uno externo): hacen la importación idempotente con
+  `ON CONFLICT` y evitan una búsqueda por cada fila.
+- **El pivote guarda la temporada vigente**, no el historial: su PK es `(competition_id, team_id)`. Si se quisiera
+  conservar temporadas anteriores, `season` pasaría a formar parte de la PK.
+- **`area_*` desnormalizado** en ligas y equipos: es un modelo de lectura de datos externos y una tabla `areas`
+  añadiría un JOIN sin beneficio.
+- **Sin FK hacia `users`** en `model_has_roles` (polimórfica, de spatie) ni en `oauth_access_tokens` (Passport):
+  así los definen esos paquetes, y la API nunca borra usuarios, solo los desactiva y revoca sus tokens.
+- **`timestamp` sin zona horaria** (el valor por defecto de Laravel): correcto mientras la aplicación trabaje en
+  UTC, como está configurada.
 
 ### Autenticación y ACL (B1 · B2)
 
@@ -364,7 +413,8 @@ siendo la que decide (401 vs 403, logout).
 ![Modelo de datos](docs/modelo-datos.png)
 
 Tablas de fútbol (con ids de football-data como clave), pivote liga–equipo con temporada, auditoría de
-importaciones, y las tablas de usuarios, roles/permisos (spatie) y tokens (Passport).
+importaciones, y las tablas de usuarios, roles/permisos (spatie) y tokens (Passport). Las líneas punteadas son
+relaciones lógicas sin FK (definidas así por esos paquetes); en las columnas se anotan los índices relevantes.
 
 > Para regenerar las imágenes: `npx -p @mermaid-js/mermaid-cli mmdc -i docs/arquitectura.mmd -o docs/arquitectura.svg`
 > (o pega el `.mmd` en <https://mermaid.live>).
@@ -409,6 +459,7 @@ cd frontend && npm test && npm run type-check && npm run ci:lint
 |---|---|---|
 | **Unitarias** (O7) | `backend/tests/Unit` | Ventana deslizante del presupuesto; adaptador de football-data: mapeo, token, cabeceras, 429, traducción de errores, red caída, presupuesto agotado sin llamar |
 | **Integración** (O8) | `backend/tests/Feature` | API + base de datos: login/logout/token revocado, **matriz de permisos por rol** sobre todas las rutas, los 5 endpoints, 404/422/429/502/503, importación idempotente, job en cola, gestión de usuarios y roles |
+| **Base de datos** | `backend/tests/Feature/Database` | Toda FK indexada, índices trigram, correo único sin importar mayúsculas, textos largos de football-data, purga de tokens programada |
 | **Aceptación** (O9) | `backend/tests/Acceptance` | Flujos completos con los seeders reales: el analista importa y recorre una liga y sigue trabajando con football-data caído; el admin crea un rol y un usuario, que solo ve lo permitido y pierde acceso al ser desactivado |
 | **Frontend** | `frontend/src/__tests__` | Normalización de errores, reglas CASL, `useAsync` sin respuestas fuera de orden, posiciones |
 
