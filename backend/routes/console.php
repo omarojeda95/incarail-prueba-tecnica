@@ -2,9 +2,9 @@
 
 use Illuminate\Support\Facades\Schedule;
 
-// Keep the local copy fresh in the background, inside the request budget.
-Schedule::command('football:sync-competitions')->dailyAt('03:00')->withoutOverlapping();
-Schedule::command('football:refresh-stale')->hourly()->withoutOverlapping();
+// Mantiene fresca la copia local en segundo plano, dentro del presupuesto de peticiones.
+Schedule::command('futbol:sincronizar-ligas')->dailyAt('03:00')->withoutOverlapping();
+Schedule::command('futbol:refrescar-vencidas')->hourly()->withoutOverlapping();
 
-// Every login creates an access token: drop the revoked and expired ones.
+// Cada inicio de sesión crea un token de acceso: se borran los revocados y vencidos.
 Schedule::command('passport:purge')->dailyAt('04:00');

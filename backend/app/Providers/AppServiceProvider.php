@@ -2,10 +2,10 @@
 
 namespace App\Providers;
 
-use App\Domain\Football\Ports\FootballDataProvider;
-use App\Infrastructure\FootballData\FootballDataClient;
-use App\Infrastructure\FootballData\RequestBudget;
-use App\Infrastructure\FootballData\SlidingWindowRequestBudget;
+use App\Dominio\Futbol\Puertos\ProveedorDatosFutbol;
+use App\Infraestructura\FootballData\ClienteFootballData;
+use App\Infraestructura\FootballData\PresupuestoPeticiones;
+use App\Infraestructura\FootballData\PresupuestoVentanaDeslizante;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Client\Factory as HttpFactory;
 use Illuminate\Http\Request;
@@ -21,21 +21,21 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        $this->app->singleton(RequestBudget::class, fn () => new SlidingWindowRequestBudget(
-            Cache::store(config('football.rate_limit.cache_store')),
-            maxRequests: config('football.rate_limit.max_requests'),
-            windowSeconds: config('football.rate_limit.window_seconds'),
+        $this->app->singleton(PresupuestoPeticiones::class, fn () => new PresupuestoVentanaDeslizante(
+            Cache::store(config('futbol.limite_peticiones.almacen_cache')),
+            maximo: config('futbol.limite_peticiones.maximo'),
+            ventanaSegundos: config('futbol.limite_peticiones.ventana_segundos'),
         ));
 
-        $this->app->bind(FootballDataClient::class, fn ($app) => new FootballDataClient(
+        $this->app->bind(ClienteFootballData::class, fn ($app) => new ClienteFootballData(
             $app->make(HttpFactory::class),
-            $app->make(RequestBudget::class),
-            token: config('football.token'),
-            baseUrl: config('football.base_url'),
-            timeout: config('football.timeout'),
+            $app->make(PresupuestoPeticiones::class),
+            token: config('futbol.token'),
+            urlBase: config('futbol.url_base'),
+            tiempoEspera: config('futbol.tiempo_espera'),
         ));
 
-        $this->app->bind(FootballDataProvider::class, FootballDataClient::class);
+        $this->app->bind(ProveedorDatosFutbol::class, ClienteFootballData::class);
     }
 
     /**
@@ -43,12 +43,12 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        Passport::personalAccessTokensExpireIn(now()->addMinutes(config('passport.token_ttl_minutes')));
+        Passport::personalAccessTokensExpireIn(now()->addMinutes(config('passport.minutos_vida_token')));
 
         RateLimiter::for('api', fn (Request $request) => Limit::perMinute(120)->by($request->user()?->id ?: $request->ip()));
 
-        RateLimiter::for('login', fn (Request $request) => Limit::perMinute(5)->by(
-            strtolower((string) $request->input('email')).'|'.$request->ip()
+        RateLimiter::for('inicio-sesion', fn (Request $request) => Limit::perMinute(5)->by(
+            strtolower((string) $request->input('correo')).'|'.$request->ip()
         ));
     }
 }

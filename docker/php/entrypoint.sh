@@ -40,7 +40,7 @@ if [ "$ROLE" = "app" ]; then
     echo "Waiting for PostgreSQL at ${DB_HOST}:${DB_PORT}..."
     until pg_isready -q -h "$DB_HOST" -p "${DB_PORT:-5432}" -U "$DB_USERNAME"; do sleep 1; done
 
-    php artisan app:install --no-interaction
+    php artisan app:instalar --no-interaction
     chown -R www-data:www-data storage bootstrap/cache
     touch "$READY_FILE"
     exec "$@"

@@ -1,48 +1,51 @@
 <?php
 
-use App\Http\Controllers\Api\AuthController;
-use App\Http\Controllers\Api\CompetitionController;
-use App\Http\Controllers\Api\PlayerController;
-use App\Http\Controllers\Api\RoleController;
-use App\Http\Controllers\Api\TeamController;
-use App\Http\Controllers\Api\UserController;
+use App\Http\Controllers\Api\AutenticacionController;
+use App\Http\Controllers\Api\EquipoController;
+use App\Http\Controllers\Api\JugadorController;
+use App\Http\Controllers\Api\LigaController;
+use App\Http\Controllers\Api\RolController;
+use App\Http\Controllers\Api\UsuarioController;
 use Illuminate\Support\Facades\Route;
 
 /*
-| Every route except the login requires a valid Passport token from an active
-| user. Authorization is decided here, on the server, through the permission
-| of each route ("can:<permission>"), never only in the SPA.
+| Todas las rutas, salvo el inicio de sesión, exigen un token de Passport
+| válido de un usuario activo. La autorización se decide aquí, en el
+| servidor, con el permiso de cada ruta ("can:<permiso>"), nunca solo en la SPA.
+|
+| Las cinco rutas del enunciado conservan exactamente su forma en inglés
+| (/competitions, /team, /players); el resto está en español.
 */
 
-Route::post('auth/login', [AuthController::class, 'login'])->middleware('throttle:login');
+Route::post('auth/iniciar-sesion', [AutenticacionController::class, 'iniciarSesion'])->middleware('throttle:inicio-sesion');
 
-Route::middleware(['auth:api', 'active', 'throttle:api'])->group(function () {
-    Route::get('auth/me', [AuthController::class, 'me']);
-    Route::post('auth/logout', [AuthController::class, 'logout']);
+Route::middleware(['auth:api', 'activo', 'throttle:api'])->group(function () {
+    Route::get('auth/sesion', [AutenticacionController::class, 'sesion']);
+    Route::post('auth/cerrar-sesion', [AutenticacionController::class, 'cerrarSesion']);
 
-    // The five endpoints of the statement, with their paths as written.
-    Route::get('competitions', [CompetitionController::class, 'index'])->middleware('can:competitions.read');
-    Route::get('competitions/{competition_id}', [CompetitionController::class, 'show'])
+    // Los cinco endpoints del enunciado, con sus rutas tal como están escritas.
+    Route::get('competitions', [LigaController::class, 'index'])->middleware('can:ligas.ver');
+    Route::get('competitions/{competition_id}', [LigaController::class, 'show'])
         ->where('competition_id', '[0-9]+|[A-Za-z0-9]{2,6}')
-        ->middleware('can:competitions.read');
-    Route::get('team', [TeamController::class, 'index'])->middleware('can:teams.read');
-    Route::get('team/{team_id}', [TeamController::class, 'show'])->whereNumber('team_id')->middleware('can:teams.read');
-    Route::get('players', [PlayerController::class, 'index'])->middleware('can:players.read');
+        ->middleware('can:ligas.ver');
+    Route::get('team', [EquipoController::class, 'index'])->middleware('can:equipos.ver');
+    Route::get('team/{team_id}', [EquipoController::class, 'show'])->whereNumber('team_id')->middleware('can:equipos.ver');
+    Route::get('players', [JugadorController::class, 'index'])->middleware('can:jugadores.ver');
 
-    // Extras used by the SPA.
-    Route::post('competitions/{competition_id}/import', [CompetitionController::class, 'import'])->middleware('can:competitions.import');
-    Route::get('players/{player_id}', [PlayerController::class, 'show'])->whereNumber('player_id')->middleware('can:players.read');
+    // Extras que usa la SPA.
+    Route::post('competitions/{competition_id}/importar', [LigaController::class, 'importar'])->middleware('can:ligas.importar');
+    Route::get('players/{player_id}', [JugadorController::class, 'show'])->whereNumber('player_id')->middleware('can:jugadores.ver');
 
-    Route::get('users', [UserController::class, 'index'])->middleware('can:users.read');
-    Route::post('users', [UserController::class, 'store'])->middleware('can:users.create');
-    Route::get('users/{user}', [UserController::class, 'show'])->middleware('can:users.read');
-    Route::put('users/{user}', [UserController::class, 'update'])->middleware('can:users.update');
-    Route::patch('users/{user}/deactivate', [UserController::class, 'deactivate'])->middleware('can:users.deactivate');
-    Route::patch('users/{user}/activate', [UserController::class, 'activate'])->middleware('can:users.deactivate');
+    Route::get('usuarios', [UsuarioController::class, 'index'])->middleware('can:usuarios.ver');
+    Route::post('usuarios', [UsuarioController::class, 'store'])->middleware('can:usuarios.crear');
+    Route::get('usuarios/{usuario}', [UsuarioController::class, 'show'])->middleware('can:usuarios.ver');
+    Route::put('usuarios/{usuario}', [UsuarioController::class, 'update'])->middleware('can:usuarios.editar');
+    Route::patch('usuarios/{usuario}/desactivar', [UsuarioController::class, 'desactivar'])->middleware('can:usuarios.desactivar');
+    Route::patch('usuarios/{usuario}/activar', [UsuarioController::class, 'activar'])->middleware('can:usuarios.desactivar');
 
-    Route::get('roles', [RoleController::class, 'index'])->middleware('can:roles.read');
-    Route::post('roles', [RoleController::class, 'store'])->middleware('can:roles.manage');
-    Route::put('roles/{role}', [RoleController::class, 'update'])->middleware('can:roles.manage');
-    Route::delete('roles/{role}', [RoleController::class, 'destroy'])->middleware('can:roles.manage');
-    Route::get('permissions', [RoleController::class, 'permissions'])->middleware('can:roles.read');
+    Route::get('roles', [RolController::class, 'index'])->middleware('can:roles.ver');
+    Route::post('roles', [RolController::class, 'store'])->middleware('can:roles.gestionar');
+    Route::put('roles/{rol}', [RolController::class, 'update'])->middleware('can:roles.gestionar');
+    Route::delete('roles/{rol}', [RolController::class, 'destroy'])->middleware('can:roles.gestionar');
+    Route::get('permisos', [RolController::class, 'permisos'])->middleware('can:roles.ver');
 });

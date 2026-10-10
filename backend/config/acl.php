@@ -2,39 +2,39 @@
 
 /*
 |--------------------------------------------------------------------------
-| Access control list
+| Lista de control de acceso
 |--------------------------------------------------------------------------
 |
-| Single source of truth for the permissions the API enforces. Each one maps
-| to a CASL rule ({action, subject}) that the SPA receives on login.
-| Permissions are fixed because the server checks them in code; roles are
-| data: administrators can create roles and combine these permissions.
+| Fuente única de los permisos que verifica la API. Cada uno equivale a una
+| regla CASL ({action, subject}) que la SPA recibe al iniciar sesión.
+| Los permisos son fijos porque el servidor los verifica en el código; los
+| roles son datos: un administrador puede crear roles y combinar permisos.
 |
 */
 
 return [
 
-    'permissions' => [
-        'competitions.read' => ['action' => 'read', 'subject' => 'Competition', 'description' => 'Ver ligas y su detalle (importa la liga si aún no está guardada)'],
-        'competitions.import' => ['action' => 'import', 'subject' => 'Competition', 'description' => 'Forzar la importación / actualización de ligas en segundo plano'],
-        'teams.read' => ['action' => 'read', 'subject' => 'Team', 'description' => 'Ver equipos guardados'],
-        'players.read' => ['action' => 'read', 'subject' => 'Player', 'description' => 'Ver jugadores guardados'],
-        'users.read' => ['action' => 'read', 'subject' => 'User', 'description' => 'Ver usuarios'],
-        'users.create' => ['action' => 'create', 'subject' => 'User', 'description' => 'Crear usuarios'],
-        'users.update' => ['action' => 'update', 'subject' => 'User', 'description' => 'Editar usuarios y asignarles roles'],
-        'users.deactivate' => ['action' => 'deactivate', 'subject' => 'User', 'description' => 'Desactivar y reactivar usuarios'],
-        'roles.read' => ['action' => 'read', 'subject' => 'Role', 'description' => 'Ver roles y permisos'],
-        'roles.manage' => ['action' => 'manage', 'subject' => 'Role', 'description' => 'Crear, editar y eliminar roles'],
+    'permisos' => [
+        'ligas.ver' => ['accion' => 'ver', 'sujeto' => 'Liga', 'descripcion' => 'Ver ligas y su detalle (importa la liga si aún no está guardada)'],
+        'ligas.importar' => ['accion' => 'importar', 'sujeto' => 'Liga', 'descripcion' => 'Forzar la importación / actualización de ligas en segundo plano'],
+        'equipos.ver' => ['accion' => 'ver', 'sujeto' => 'Equipo', 'descripcion' => 'Ver equipos guardados'],
+        'jugadores.ver' => ['accion' => 'ver', 'sujeto' => 'Jugador', 'descripcion' => 'Ver jugadores guardados'],
+        'usuarios.ver' => ['accion' => 'ver', 'sujeto' => 'Usuario', 'descripcion' => 'Ver usuarios'],
+        'usuarios.crear' => ['accion' => 'crear', 'sujeto' => 'Usuario', 'descripcion' => 'Crear usuarios'],
+        'usuarios.editar' => ['accion' => 'editar', 'sujeto' => 'Usuario', 'descripcion' => 'Editar usuarios y asignarles roles'],
+        'usuarios.desactivar' => ['accion' => 'desactivar', 'sujeto' => 'Usuario', 'descripcion' => 'Desactivar y reactivar usuarios'],
+        'roles.ver' => ['accion' => 'ver', 'sujeto' => 'Rol', 'descripcion' => 'Ver roles y permisos'],
+        'roles.gestionar' => ['accion' => 'gestionar', 'sujeto' => 'Rol', 'descripcion' => 'Crear, editar y eliminar roles'],
     ],
 
     'roles' => [
         'admin' => ['*'],
-        'analista' => ['competitions.read', 'competitions.import', 'teams.read', 'players.read'],
-        'consulta' => ['competitions.read', 'teams.read', 'players.read'],
+        'analista' => ['ligas.ver', 'ligas.importar', 'equipos.ver', 'jugadores.ver'],
+        'consulta' => ['ligas.ver', 'equipos.ver', 'jugadores.ver'],
     ],
 
-    // Roles that cannot be renamed, edited or deleted from the API.
-    'protected_roles' => ['admin'],
+    // Roles que no se pueden renombrar, editar ni eliminar desde la API.
+    'roles_protegidos' => ['admin'],
 
     'guard' => 'api',
 

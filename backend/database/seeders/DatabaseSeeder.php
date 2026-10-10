@@ -4,15 +4,15 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 
-/** Every seeder is idempotent: running it again never duplicates nor resets data. */
+/** Todos los seeders son idempotentes: ejecutarlos de nuevo no duplica ni reinicia datos. */
 class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
         $this->call([
-            RolesAndPermissionsSeeder::class,
-            UserSeeder::class,
-            PassportClientSeeder::class,
+            RolesYPermisosSeeder::class,
+            UsuariosSeeder::class,
+            ClientePassportSeeder::class,
         ]);
     }
 }

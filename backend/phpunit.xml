@@ -11,8 +11,8 @@
         <testsuite name="Feature">
             <directory>tests/Feature</directory>
         </testsuite>
-        <testsuite name="Acceptance">
-            <directory>tests/Acceptance</directory>
+        <testsuite name="Aceptacion">
+            <directory>tests/Aceptacion</directory>
         </testsuite>
     </testsuites>
     <source>
