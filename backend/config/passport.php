@@ -15,6 +15,9 @@ return [
 
     'guard' => 'web',
 
+    // Lifetime of the personal access tokens issued on login.
+    'token_ttl_minutes' => (int) env('PASSPORT_TOKEN_TTL_MINUTES', 480),
+
     'middleware' => [],
 
     /*
