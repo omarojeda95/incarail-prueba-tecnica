@@ -31,10 +31,8 @@ jobs:
       run:
         working-directory: backend
     env:
-      DB_CONNECTION: ${{ matrix.database }}
       DB_HOST: 127.0.0.1
       DB_PORT: 5432
-      DB_DATABASE: ${{ matrix.database == 'pgsql' && 'incarail_test' || ':memory:' }}
       DB_USERNAME: incarail
       DB_PASSWORD: incarail
     steps:
@@ -58,8 +56,17 @@ jobs:
         if: matrix.database == 'sqlite'
         run: vendor/bin/pint --test
 
+      # phpunit.xml forces SQLite in memory (so tests never hit a real database);
+      # the PostgreSQL run uses a copy pointing to the service database.
+      - name: Point the tests to PostgreSQL
+        if: matrix.database == 'pgsql'
+        run: |
+          sed -e 's/name="DB_CONNECTION" value="sqlite"/name="DB_CONNECTION" value="pgsql"/' \
+              -e 's/name="DB_DATABASE" value=":memory:"/name="DB_DATABASE" value="incarail_test"/' \
+              phpunit.xml > phpunit.pgsql.xml
+
       - name: Unit, integration and acceptance tests
-        run: php artisan test
+        run: php artisan test ${{ matrix.database == 'pgsql' && '--configuration=phpunit.pgsql.xml' || '' }}
 
   frontend:
     name: Frontend
