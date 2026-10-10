@@ -1,0 +1,31 @@
+sequenceDiagram
+    autonumber
+    actor U as Usuario
+    participant S as SPA (Pinia + CASL)
+    participant A as API (Passport + spatie/permission)
+    participant DB as PostgreSQL
+
+    U->>S: correo + contraseña
+    S->>A: POST /auth/login
+    A->>DB: buscar usuario · Hash::check (bcrypt)
+    alt credenciales inválidas
+        A-->>S: 401 invalid_credentials
+    else usuario desactivado
+        A-->>S: 403 account_disabled
+    else ok
+        A->>DB: createToken() → oauth_access_tokens
+        A-->>S: access_token (JWT) · expires_at · user · abilities [{action, subject}]
+        S->>S: localStorage(token) · ability.update(rules)
+    end
+    Note over S: El menú, las rutas (beforeEach) y los botones<br/>usan ability.can(action, subject)
+    S->>A: GET /users (Authorization: Bearer)
+    A->>A: auth:api → active → can:users.read
+    alt sin permiso
+        A-->>S: 403 forbidden → mensaje claro en la SPA
+    else token vencido / revocado
+        A-->>S: 401 unauthenticated → SPA limpia sesión y vuelve al login
+    else ok
+        A-->>S: 200 usuarios
+    end
+    U->>S: Cerrar sesión
+    S->>A: POST /auth/logout → token revocado

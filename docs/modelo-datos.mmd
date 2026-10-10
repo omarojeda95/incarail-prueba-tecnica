@@ -1,0 +1,89 @@
+erDiagram
+    competitions ||--o{ competition_team : "tiene"
+    teams ||--o{ competition_team : "juega en"
+    teams ||--o{ players : "plantel"
+    competitions ||--o{ competition_imports : "auditoría"
+    users ||--o{ model_has_roles : ""
+    roles ||--o{ model_has_roles : ""
+    roles ||--o{ role_has_permissions : ""
+    permissions ||--o{ role_has_permissions : ""
+    users ||--o{ oauth_access_tokens : "sesiones"
+
+    competitions {
+        bigint id PK "id de football-data"
+        string name
+        string code UK "PL, PD, SA..."
+        string type
+        string emblem
+        string plan "TIER_ONE..FOUR"
+        string area_name
+        date season_start
+        date season_end
+        smallint current_matchday
+        timestamp teams_synced_at "null = no importada"
+    }
+    teams {
+        bigint id PK "id de football-data"
+        string name
+        string short_name
+        string tla
+        string crest
+        string venue
+        smallint founded
+        string club_colors
+        string coach_name
+    }
+    competition_team {
+        bigint competition_id PK, FK
+        bigint team_id PK, FK
+        string season
+    }
+    players {
+        bigint id PK "id de football-data"
+        bigint team_id FK
+        string name
+        string position
+        smallint shirt_number "nullable"
+        date date_of_birth
+        string nationality
+    }
+    competition_imports {
+        bigint id PK
+        bigint competition_id FK
+        int teams_count
+        int players_count
+        string trigger "request/queue/manual/schedule/console"
+        timestamp imported_at
+    }
+    users {
+        bigint id PK
+        string name
+        string email UK
+        string password "bcrypt"
+        boolean is_active
+        timestamp deactivated_at
+    }
+    roles {
+        bigint id PK
+        string name "admin, analista, consulta..."
+        string guard_name "api"
+    }
+    permissions {
+        bigint id PK
+        string name "competitions.read, users.create..."
+        string guard_name "api"
+    }
+    model_has_roles {
+        bigint role_id FK
+        bigint model_id FK
+    }
+    role_has_permissions {
+        bigint permission_id FK
+        bigint role_id FK
+    }
+    oauth_access_tokens {
+        string id PK
+        bigint user_id FK
+        boolean revoked
+        timestamp expires_at
+    }

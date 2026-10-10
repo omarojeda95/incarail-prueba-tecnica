@@ -1,12 +1,12 @@
 {
     "$schema": "https://getcomposer.org/schema.json",
-    "name": "laravel/laravel",
+    "name": "incarail/football-api",
     "type": "project",
-    "description": "The skeleton application for the Laravel framework.",
+    "description": "Inca Rail technical test: football-data.org REST API with Passport and ACL.",
     "keywords": ["laravel", "framework"],
     "license": "MIT",
     "require": {
-        "php": "^8.3",
+        "php": "^8.5",
         "laravel/framework": "^13.17",
         "laravel/passport": "^13.0",
         "laravel/tinker": "^3.0",

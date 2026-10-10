@@ -1,0 +1,46 @@
+sequenceDiagram
+    autonumber
+    actor U as Usuario
+    participant S as SPA Vue
+    participant A as API Laravel<br/>(CompetitionController)
+    participant Q as CompetitionDetail<br/>(consulta)
+    participant I as ImportCompetition<br/>(comando)
+    participant B as RequestBudget<br/>(Redis)
+    participant F as FootballDataClient
+    participant FD as football-data.org
+    participant DB as PostgreSQL
+    participant E as Evento / Listener
+    participant W as Worker (cola)
+
+    U->>S: Abre "Premier League"
+    S->>A: GET /competitions/PL (Bearer token)
+    A->>A: auth:api · active · can:competitions.read
+    A->>Q: handle("PL")
+    Q->>DB: Competition::reference("PL")
+    alt importada y fresca
+        DB-->>Q: liga + equipos
+        Q-->>A: QueryResult(source=database)
+    else no importada o vencida
+        Q->>I: handle("PL")
+        I->>F: competitionSquads("PL")
+        F->>B: acquire()
+        alt hay cupo
+            B-->>F: ok (registra el hit)
+            F->>FD: GET /v4/competitions/PL/teams (X-Auth-Token)
+            FD-->>F: 200 competition + teams + squad
+            F->>B: sincroniza con X-Requests-Available-Minute
+            F-->>I: CompetitionSquads (DTO de dominio)
+            I->>DB: transacción: upsert competition, teams, players · sync pivot
+            I-)E: CompetitionImported
+            E->>DB: competition_imports (auditoría)
+            I-->>Q: Competition
+            Q-->>A: QueryResult(source=football-data)
+        else sin cupo
+            B-->>F: FootballDataRateLimited(retryAfter)
+            Q-)W: ImportCompetitionJob::dispatch("PL")
+            Q-->>A: 429 (o 200 stale si había copia)
+            Note over W,FD: El worker reintenta cuando se libera un cupo<br/>(release con retryAfter) y la próxima consulta ya sale de la BD
+        end
+    end
+    A-->>S: JSON { data, meta } · mismo formato de error siempre
+    S-->>U: Equipos de la liga (o cuenta regresiva y reintento automático)
