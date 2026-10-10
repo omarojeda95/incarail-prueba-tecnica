@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { RouterView } from 'vue-router'
-import NoticeStack from '@/components/NoticeStack.vue'
+import PilaAvisos from '@/components/PilaAvisos.vue'
 </script>
 
 <template>
   <v-app>
     <RouterView />
-    <NoticeStack />
+    <PilaAvisos />
   </v-app>
 </template>

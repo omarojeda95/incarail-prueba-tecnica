@@ -1,14 +1,14 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import { ability, type Action, type Subject } from '@/ability'
-import { useAuthStore } from '@/stores/auth'
+import { habilidades, type Accion, type Sujeto } from '@/habilidades'
+import { useSesionStore } from '@/stores/sesion'
 
 declare module 'vue-router' {
   interface RouteMeta {
-    /** Public pages (login) skip the session check. */
-    public?: boolean
-    /** CASL rule required to open the page. */
-    can?: [Action, Subject]
-    title?: string
+    /** Páginas públicas (inicio de sesión) que no exigen sesión. */
+    publica?: boolean
+    /** Regla CASL necesaria para abrir la página. */
+    requiere?: [Accion, Sujeto]
+    titulo?: string
   }
 }
 
@@ -16,115 +16,120 @@ const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
     {
-      path: '/login',
-      name: 'login',
-      component: () => import('@/views/LoginView.vue'),
-      meta: { public: true, title: 'Iniciar sesión' },
+      path: '/iniciar-sesion',
+      name: 'iniciar-sesion',
+      component: () => import('@/views/IniciarSesionView.vue'),
+      meta: { publica: true, titulo: 'Iniciar sesión' },
     },
     {
       path: '/',
-      component: () => import('@/layouts/AppLayout.vue'),
+      component: () => import('@/layouts/PlantillaAplicacion.vue'),
       children: [
-        { path: '', name: 'home', redirect: { name: 'competitions' } },
+        { path: '', name: 'inicio', redirect: { name: 'ligas' } },
         {
-          path: 'competitions',
-          name: 'competitions',
-          component: () => import('@/views/CompetitionsView.vue'),
-          meta: { can: ['read', 'Competition'], title: 'Ligas' },
+          path: 'ligas',
+          name: 'ligas',
+          component: () => import('@/views/LigasView.vue'),
+          meta: { requiere: ['ver', 'Liga'], titulo: 'Ligas' },
         },
         {
-          path: 'competitions/:id',
-          name: 'competition',
-          component: () => import('@/views/CompetitionDetailView.vue'),
+          path: 'ligas/:id',
+          name: 'liga',
+          component: () => import('@/views/DetalleLigaView.vue'),
           props: true,
-          meta: { can: ['read', 'Competition'], title: 'Liga' },
+          meta: { requiere: ['ver', 'Liga'], titulo: 'Liga' },
         },
         {
-          path: 'teams',
-          name: 'teams',
-          component: () => import('@/views/TeamsView.vue'),
-          meta: { can: ['read', 'Team'], title: 'Equipos' },
+          path: 'equipos',
+          name: 'equipos',
+          component: () => import('@/views/EquiposView.vue'),
+          meta: { requiere: ['ver', 'Equipo'], titulo: 'Equipos' },
         },
         {
-          path: 'teams/:id',
-          name: 'team',
-          component: () => import('@/views/TeamDetailView.vue'),
+          path: 'equipos/:id',
+          name: 'equipo',
+          component: () => import('@/views/DetalleEquipoView.vue'),
           props: true,
-          meta: { can: ['read', 'Team'], title: 'Equipo' },
+          meta: { requiere: ['ver', 'Equipo'], titulo: 'Equipo' },
         },
         {
-          path: 'players',
-          name: 'players',
-          component: () => import('@/views/PlayersView.vue'),
-          meta: { can: ['read', 'Player'], title: 'Jugadores' },
+          path: 'jugadores',
+          name: 'jugadores',
+          component: () => import('@/views/JugadoresView.vue'),
+          meta: { requiere: ['ver', 'Jugador'], titulo: 'Jugadores' },
         },
         {
-          path: 'admin/users',
-          name: 'users',
-          component: () => import('@/views/admin/UsersView.vue'),
-          meta: { can: ['read', 'User'], title: 'Usuarios' },
+          path: 'admin/usuarios',
+          name: 'usuarios',
+          component: () => import('@/views/admin/UsuariosView.vue'),
+          meta: { requiere: ['ver', 'Usuario'], titulo: 'Usuarios' },
         },
         {
           path: 'admin/roles',
           name: 'roles',
           component: () => import('@/views/admin/RolesView.vue'),
-          meta: { can: ['read', 'Role'], title: 'Roles y permisos' },
+          meta: { requiere: ['ver', 'Rol'], titulo: 'Roles y permisos' },
         },
         {
-          path: 'forbidden',
-          name: 'forbidden',
-          component: () => import('@/views/ForbiddenView.vue'),
-          meta: { title: 'Sin permiso' },
+          path: 'sin-permiso',
+          name: 'sin-permiso',
+          component: () => import('@/views/SinPermisoView.vue'),
+          meta: { titulo: 'Sin permiso' },
         },
         {
           path: ':pathMatch(.*)*',
-          name: 'not-found',
-          component: () => import('@/views/NotFoundView.vue'),
-          meta: { title: 'No encontrado' },
+          name: 'no-encontrado',
+          component: () => import('@/views/NoEncontradoView.vue'),
+          meta: { titulo: 'No encontrado' },
         },
       ],
     },
   ],
 })
 
-/** First page the user may open, depending on their abilities. */
-export function homeFor(): { name: string } {
-  const candidates: [string, Subject][] = [
-    ['competitions', 'Competition'],
-    ['teams', 'Team'],
-    ['players', 'Player'],
-    ['users', 'User'],
-    ['roles', 'Role'],
+/** Primera página que el usuario puede abrir según sus habilidades. */
+export function paginaInicial(): { name: string } {
+  const candidatas: [string, Sujeto][] = [
+    ['ligas', 'Liga'],
+    ['equipos', 'Equipo'],
+    ['jugadores', 'Jugador'],
+    ['usuarios', 'Usuario'],
+    ['roles', 'Rol'],
   ]
-  const match = candidates.find(([, subject]) => ability.can('read', subject))
-  return { name: match ? match[0] : 'forbidden' }
+  const encontrada = candidatas.find(([, sujeto]) => habilidades.can('ver', sujeto))
+  return { name: encontrada ? encontrada[0] : 'sin-permiso' }
 }
 
-router.beforeEach(async (to) => {
-  const auth = useAuthStore()
-  await auth.restore()
+router.beforeEach(async (destino) => {
+  const sesion = useSesionStore()
+  await sesion.restaurar()
 
-  if (to.meta.public) {
-    return auth.isAuthenticated ? homeFor() : true
+  if (destino.meta.publica) {
+    return sesion.autenticado ? paginaInicial() : true
   }
 
-  if (!auth.isAuthenticated) {
-    return { name: 'login', query: to.fullPath !== '/' ? { redirect: to.fullPath } : {} }
+  if (!sesion.autenticado) {
+    return {
+      name: 'iniciar-sesion',
+      query: destino.fullPath !== '/' ? { volver: destino.fullPath } : {},
+    }
   }
 
-  if (to.name === 'competitions' && ability.cannot('read', 'Competition')) {
-    return homeFor()
+  if (destino.name === 'ligas' && habilidades.cannot('ver', 'Liga')) {
+    return paginaInicial()
   }
 
-  if (to.meta.can && ability.cannot(...to.meta.can)) {
-    return { name: 'forbidden', query: { from: to.fullPath } }
+  if (destino.meta.requiere && habilidades.cannot(...destino.meta.requiere)) {
+    return { name: 'sin-permiso', query: { desde: destino.fullPath } }
   }
 
   return true
 })
 
-router.afterEach((to) => {
-  document.title = to.meta.title ? `${to.meta.title} · Inca Rail Fútbol` : 'Inca Rail Fútbol'
+router.afterEach((destino) => {
+  document.title = destino.meta.titulo
+    ? `${destino.meta.titulo} · Inca Rail Fútbol`
+    : 'Inca Rail Fútbol'
 })
 
 export default router

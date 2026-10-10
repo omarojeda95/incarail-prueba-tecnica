@@ -1,137 +1,137 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { useAbility } from '@casl/vue'
-import type { AppAbility } from '@/ability'
-import { accessApi } from '@/api/access'
-import { ApiError, toApiError } from '@/api/errors'
-import { useAsync } from '@/composables/useAsync'
-import { useNotifyStore } from '@/stores/notify'
-import AsyncState from '@/components/AsyncState.vue'
-import ConfirmDialog from '@/components/ConfirmDialog.vue'
-import PageHeader from '@/components/PageHeader.vue'
-import type { Permission, Role } from '@/types/api'
+import type { HabilidadesApp } from '@/habilidades'
+import { apiAcceso } from '@/api/acceso'
+import { ErrorApi, aErrorApi } from '@/api/errores'
+import { useAsincrono } from '@/composables/useAsincrono'
+import { useAvisosStore } from '@/stores/avisos'
+import EstadoAsincrono from '@/components/EstadoAsincrono.vue'
+import DialogoConfirmacion from '@/components/DialogoConfirmacion.vue'
+import EncabezadoPagina from '@/components/EncabezadoPagina.vue'
+import type { Permiso, Rol } from '@/tipos/api'
 
-const { can } = useAbility<AppAbility>()
-const notify = useNotifyStore()
+const { can } = useAbility<HabilidadesApp>()
+const avisos = useAvisosStore()
 
-const roles = useAsync(() => accessApi.roles())
-const permissions = useAsync(() => accessApi.permissions())
-onMounted(() => Promise.all([roles.run(), permissions.run()]))
+const roles = useAsincrono(() => apiAcceso.roles())
+const permisos = useAsincrono(() => apiAcceso.permisos())
+onMounted(() => Promise.all([roles.ejecutar(), permisos.ejecutar()]))
 
-const SUBJECTS: Record<string, string> = {
-  Competition: 'Ligas',
-  Team: 'Equipos',
-  Player: 'Jugadores',
-  User: 'Usuarios',
-  Role: 'Roles',
+const SUJETOS: Record<string, string> = {
+  Liga: 'Ligas',
+  Equipo: 'Equipos',
+  Jugador: 'Jugadores',
+  Usuario: 'Usuarios',
+  Rol: 'Roles',
 }
 
-/** Permission catalog grouped by CASL subject, to build the editor. */
-const groups = computed(() => {
-  const map = new Map<string, Permission[]>()
-  for (const permission of permissions.data.value ?? []) {
-    map.set(permission.subject, [...(map.get(permission.subject) ?? []), permission])
+/** Catálogo de permisos agrupado por sujeto CASL, para armar el editor. */
+const grupos = computed(() => {
+  const mapa = new Map<string, Permiso[]>()
+  for (const permiso of permisos.datos.value ?? []) {
+    mapa.set(permiso.sujeto, [...(mapa.get(permiso.sujeto) ?? []), permiso])
   }
-  return [...map.entries()].map(([subject, items]) => ({
-    subject,
-    label: SUBJECTS[subject] ?? subject,
-    items,
+  return [...mapa.entries()].map(([sujeto, lista]) => ({
+    sujeto,
+    etiqueta: SUJETOS[sujeto] ?? sujeto,
+    lista,
   }))
 })
-const describe = (name: string) =>
-  permissions.data.value?.find((p) => p.name === name)?.description ?? name
+const describir = (nombre: string) =>
+  permisos.datos.value?.find((p) => p.nombre === nombre)?.descripcion ?? nombre
 
 // --- editor
-const editorOpen = ref(false)
-const editing = ref<Role | null>(null)
-const form = ref({ name: '', permissions: [] as string[] })
-const saving = ref(false)
-const formError = ref<ApiError | null>(null)
+const editorAbierto = ref(false)
+const editando = ref<Rol | null>(null)
+const formulario = ref({ nombre: '', permisos: [] as string[] })
+const guardando = ref(false)
+const errorFormulario = ref<ErrorApi | null>(null)
 
-function openEditor(role: Role | null) {
-  editing.value = role
-  form.value = { name: role?.name ?? '', permissions: [...(role?.permissions ?? [])] }
-  formError.value = null
-  editorOpen.value = true
+function abrirEditor(rol: Rol | null) {
+  editando.value = rol
+  formulario.value = { nombre: rol?.nombre ?? '', permisos: [...(rol?.permisos ?? [])] }
+  errorFormulario.value = null
+  editorAbierto.value = true
 }
 
-async function save() {
-  saving.value = true
-  formError.value = null
+async function guardar() {
+  guardando.value = true
+  errorFormulario.value = null
   try {
-    if (editing.value) await accessApi.updateRole(editing.value.id, form.value)
-    else await accessApi.createRole(form.value)
-    notify.success(`Rol ${form.value.name} guardado.`)
-    editorOpen.value = false
-    roles.run()
+    if (editando.value) await apiAcceso.editarRol(editando.value.id, formulario.value)
+    else await apiAcceso.crearRol(formulario.value)
+    avisos.exito(`Rol ${formulario.value.nombre} guardado.`)
+    editorAbierto.value = false
+    roles.ejecutar()
   } catch (e) {
-    formError.value = toApiError(e)
+    errorFormulario.value = aErrorApi(e)
   } finally {
-    saving.value = false
+    guardando.value = false
   }
 }
 
-// --- delete
-const deleting = ref<Role | null>(null)
-const deleteBusy = ref(false)
-async function confirmDelete() {
-  if (!deleting.value) return
-  deleteBusy.value = true
+// --- eliminación
+const eliminando = ref<Rol | null>(null)
+const procesando = ref(false)
+async function confirmarEliminacion() {
+  if (!eliminando.value) return
+  procesando.value = true
   try {
-    await accessApi.deleteRole(deleting.value.id)
-    notify.success(`Rol ${deleting.value.name} eliminado.`)
-    roles.run()
+    await apiAcceso.eliminarRol(eliminando.value.id)
+    avisos.exito(`Rol ${eliminando.value.nombre} eliminado.`)
+    roles.ejecutar()
   } catch (e) {
-    notify.error(toApiError(e).message)
+    avisos.error(aErrorApi(e).message)
   } finally {
-    deleteBusy.value = false
-    deleting.value = null
+    procesando.value = false
+    eliminando.value = null
   }
 }
 </script>
 
 <template>
-  <PageHeader
-    title="Roles y permisos"
-    subtitle="Cada rol agrupa permisos. El servidor valida cada permiso; la interfaz solo se adapta a ellos."
+  <EncabezadoPagina
+    titulo="Roles y permisos"
+    subtitulo="Cada rol agrupa permisos. El servidor valida cada permiso; la interfaz solo se adapta a ellos."
   >
-    <template #actions>
+    <template #acciones>
       <v-btn
-        v-if="can('manage', 'Role')"
+        v-if="can('gestionar', 'Rol')"
         color="primary"
         prepend-icon="mdi-plus"
-        @click="openEditor(null)"
+        @click="abrirEditor(null)"
       >
         Nuevo rol
       </v-btn>
     </template>
-  </PageHeader>
+  </EncabezadoPagina>
 
-  <AsyncState
-    :loading="roles.loading.value"
-    :error="roles.error.value ?? permissions.error.value"
-    :empty="roles.data.value?.length === 0"
-    @retry="roles.run()"
+  <EstadoAsincrono
+    :cargando="roles.cargando.value"
+    :error="roles.error.value ?? permisos.error.value"
+    :vacio="roles.datos.value?.length === 0"
+    @reintentar="roles.ejecutar()"
   >
     <v-row>
-      <v-col v-for="role in roles.data.value" :key="role.id" cols="12" md="6" xl="4">
+      <v-col v-for="rol in roles.datos.value" :key="rol.id" cols="12" md="6" xl="4">
         <v-card height="100%">
           <v-card-item>
             <v-card-title class="d-flex align-center ga-2">
-              {{ role.name }}
-              <v-chip v-if="role.protected" size="x-small" prepend-icon="mdi-lock">sistema</v-chip>
+              {{ rol.nombre }}
+              <v-chip v-if="rol.protegido" size="x-small" prepend-icon="mdi-lock">sistema</v-chip>
             </v-card-title>
             <v-card-subtitle
-              >{{ role.users_count }} usuario(s) ·
-              {{ role.permissions.length }} permiso(s)</v-card-subtitle
+              >{{ rol.cantidad_usuarios }} usuario(s) ·
+              {{ rol.permisos.length }} permiso(s)</v-card-subtitle
             >
-            <template v-if="can('manage', 'Role') && !role.protected" #append>
+            <template v-if="can('gestionar', 'Rol') && !rol.protegido" #append>
               <v-btn
                 icon="mdi-pencil"
                 variant="text"
                 size="small"
                 aria-label="Editar rol"
-                @click="openEditor(role)"
+                @click="abrirEditor(rol)"
               />
               <v-btn
                 icon="mdi-delete-outline"
@@ -139,88 +139,88 @@ async function confirmDelete() {
                 size="small"
                 color="error"
                 aria-label="Eliminar rol"
-                @click="deleting = role"
+                @click="eliminando = rol"
               />
             </template>
           </v-card-item>
           <v-card-text>
             <v-chip
-              v-for="permission in role.permissions"
-              :key="permission"
+              v-for="permiso in rol.permisos"
+              :key="permiso"
               size="small"
               variant="tonal"
               color="primary"
               class="mr-1 mb-1"
-              :title="describe(permission)"
+              :title="describir(permiso)"
             >
-              {{ permission }}
+              {{ permiso }}
             </v-chip>
           </v-card-text>
         </v-card>
       </v-col>
     </v-row>
-  </AsyncState>
+  </EstadoAsincrono>
 
-  <v-dialog v-model="editorOpen" max-width="640" scrollable>
-    <v-card :title="editing ? `Editar rol ${editing.name}` : 'Nuevo rol'">
+  <v-dialog v-model="editorAbierto" max-width="640" scrollable>
+    <v-card :title="editando ? `Editar rol ${editando.nombre}` : 'Nuevo rol'">
       <v-card-text>
         <v-alert
-          v-if="formError && formError.status !== 422"
+          v-if="errorFormulario && errorFormulario.estado !== 422"
           type="error"
           variant="tonal"
           density="compact"
           class="mb-4"
         >
-          {{ formError.message }}
+          {{ errorFormulario.message }}
         </v-alert>
         <v-text-field
-          v-model="form.name"
+          v-model="formulario.nombre"
           label="Nombre del rol"
           hint="Minúsculas, números, guiones"
           persistent-hint
-          :error-messages="formError?.field('name')"
+          :error-messages="errorFormulario?.campo('nombre')"
           class="mb-4"
         />
-        <div v-for="group in groups" :key="group.subject" class="mb-3">
-          <div class="text-subtitle-2 mb-1">{{ group.label }}</div>
+        <div v-for="grupo in grupos" :key="grupo.sujeto" class="mb-3">
+          <div class="text-subtitle-2 mb-1">{{ grupo.etiqueta }}</div>
           <v-checkbox
-            v-for="permission in group.items"
-            :key="permission.name"
-            v-model="form.permissions"
-            :value="permission.name"
+            v-for="permiso in grupo.lista"
+            :key="permiso.nombre"
+            v-model="formulario.permisos"
+            :value="permiso.nombre"
             density="compact"
             hide-details
           >
             <template #label>
               <div>
-                <div>{{ permission.description }}</div>
+                <div>{{ permiso.descripcion }}</div>
                 <div class="text-caption text-medium-emphasis">
-                  {{ permission.name }} · CASL: {{ permission.action }} / {{ permission.subject }}
+                  {{ permiso.nombre }} · CASL: {{ permiso.accion }} / {{ permiso.sujeto }}
                 </div>
               </div>
             </template>
           </v-checkbox>
         </div>
-        <div v-if="formError?.field('permissions')" class="text-error text-caption">
-          {{ formError.field('permissions') }}
+        <div v-if="errorFormulario?.campo('permisos')" class="text-error text-caption">
+          {{ errorFormulario.campo('permisos') }}
         </div>
       </v-card-text>
       <v-card-actions>
         <v-spacer />
-        <v-btn variant="text" @click="editorOpen = false">Cancelar</v-btn>
-        <v-btn color="primary" variant="flat" :loading="saving" @click="save">Guardar</v-btn>
+        <v-btn variant="text" @click="editorAbierto = false">Cancelar</v-btn>
+        <v-btn color="primary" variant="flat" :loading="guardando" @click="guardar">Guardar</v-btn>
       </v-card-actions>
     </v-card>
   </v-dialog>
 
-  <ConfirmDialog
-    :model-value="deleting !== null"
-    title="Eliminar rol"
-    :text="`¿Eliminar el rol ${deleting?.name}? Esta acción no se puede deshacer.`"
-    confirm-text="Eliminar"
+  <DialogoConfirmacion
+    :model-value="eliminando !== null"
+    titulo="Eliminar rol"
+    :texto="`¿Eliminar el rol ${eliminando?.nombre}? Esta acción no se puede deshacer.`"
+    texto-confirmar="Eliminar"
     color="error"
-    :loading="deleteBusy"
-    @update:model-value="!$event && (deleting = null)"
-    @confirm="confirmDelete"
+    :cargando="procesando"
+    @update:model-value="!$event && (eliminando = null)"
+    @confirmar="confirmarEliminacion"
   />
 </template>

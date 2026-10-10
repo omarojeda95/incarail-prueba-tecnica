@@ -5,30 +5,33 @@ import { abilitiesPlugin } from '@casl/vue'
 import App from './App.vue'
 import router from './router'
 import vuetify from './plugins/vuetify'
-import { ability } from './ability'
-import { sessionHooks } from './api/http'
-import { useAuthStore } from './stores/auth'
-import { useNotifyStore } from './stores/notify'
-import './styles.css'
+import { habilidades } from './habilidades'
+import { ganchosSesion } from './api/cliente'
+import { useSesionStore } from './stores/sesion'
+import { useAvisosStore } from './stores/avisos'
+import './estilos.css'
 
 const app = createApp(App)
 
 app.use(createPinia())
 app.use(router)
 app.use(vuetify)
-app.use(abilitiesPlugin, ability, { useGlobalProperties: true })
+app.use(abilitiesPlugin, habilidades, { useGlobalProperties: true })
 
-// When the API says the session is gone, clean up and go to the login page
-// with a clear message instead of leaving a broken screen.
-const endSession = (message: string) => {
-  const auth = useAuthStore()
-  if (!auth.token) return
-  auth.clear()
-  useNotifyStore().warning(message)
-  const current = router.currentRoute.value
-  router.push({ name: 'login', query: current.meta.public ? {} : { redirect: current.fullPath } })
+// Cuando la API dice que la sesión ya no vale, se limpia y se vuelve al
+// inicio de sesión con un mensaje claro, en vez de dejar una pantalla rota.
+const terminarSesion = (mensaje: string) => {
+  const sesion = useSesionStore()
+  if (!sesion.token) return
+  sesion.limpiar()
+  useAvisosStore().advertencia(mensaje)
+  const actual = router.currentRoute.value
+  router.push({
+    name: 'iniciar-sesion',
+    query: actual.meta.publica ? {} : { volver: actual.fullPath },
+  })
 }
-sessionHooks.onUnauthenticated = endSession
-sessionHooks.onAccountDisabled = endSession
+ganchosSesion.alPerderSesion = terminarSesion
+ganchosSesion.alDesactivarCuenta = terminarSesion
 
 app.mount('#app')
