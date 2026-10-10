@@ -79,6 +79,26 @@ class ImportCompetitionTest extends TestCase
     }
 
     #[Test]
+    public function teams_that_leave_the_competition_are_unlinked_and_the_season_is_updated(): void
+    {
+        $this->provider->withSquads($this->premierLeague());
+        $import = $this->app->make(ImportCompetition::class);
+        $import->handle('PL');
+
+        // Next season: Manchester City is gone, Arsenal stays, Ipswich arrives.
+        $this->provider->withSquads(new CompetitionSquads(Fake::competition(), '2027', [
+            Fake::team(57, 'Arsenal FC', [Fake::player(1, 'David Raya', 'Goalkeeper', 22)]),
+            Fake::team(349, 'Ipswich Town FC', [Fake::player(9, 'Leif Davis', 'Defence', 3)]),
+        ]));
+        $import->handle('PL');
+
+        $links = Competition::findOrFail(2021)->teams()->orderBy('teams.id')->get();
+        $this->assertSame([57, 349], $links->pluck('id')->all());
+        $this->assertSame(['2027', '2027'], $links->pluck('pivot.season')->all());
+        $this->assertTrue(Team::whereKey(65)->exists(), 'The team itself is kept, only the link is removed.');
+    }
+
+    #[Test]
     public function it_keeps_catalog_fields_the_squads_endpoint_does_not_send(): void
     {
         Competition::factory()->create(['id' => 2021, 'code' => 'PL', 'plan' => 'TIER_ONE', 'area_name' => 'England']);

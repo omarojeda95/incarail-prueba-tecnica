@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Api;
 
+use App\Domain\Football\Events\CompetitionImported;
 use App\Infrastructure\FootballData\RequestBudget;
 use App\Jobs\ImportCompetitionJob;
 use App\Models\Competition;
@@ -47,6 +48,32 @@ class FootballEndpointsTest extends TestCase
 
         Http::assertSentCount(1);
         $this->assertSame(2, Competition::count());
+    }
+
+    #[Test]
+    public function the_competitions_list_counts_teams_from_the_pivot(): void
+    {
+        cache()->forever('football:catalog:synced-at', now()->getTimestamp());
+        Competition::factory()->create(['code' => 'PL'])->teams()->attach(Team::factory()->count(3)->create());
+        Competition::factory()->create(['code' => 'PD']);
+
+        $this->getJson('/competitions?search=P')
+            ->assertOk()
+            ->assertJsonFragment(['code' => 'PL', 'teams_count' => 3])
+            ->assertJsonFragment(['code' => 'PD', 'teams_count' => 0]);
+    }
+
+    #[Test]
+    public function player_positions_are_cached_until_a_new_import(): void
+    {
+        Player::factory()->create(['position' => 'Goalkeeper']);
+        $this->getJson('/players')->assertJsonPath('filters.positions', ['Goalkeeper']);
+
+        Player::factory()->create(['position' => 'Offence']);
+        $this->getJson('/players')->assertJsonPath('filters.positions', ['Goalkeeper']);
+
+        event(new CompetitionImported(2021, 1, 1, 'request'));
+        $this->getJson('/players')->assertJsonPath('filters.positions', ['Goalkeeper', 'Offence']);
     }
 
     #[Test]
