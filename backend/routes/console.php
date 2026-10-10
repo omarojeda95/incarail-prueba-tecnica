@@ -1,8 +1,7 @@
 <?php
 
-use Illuminate\Foundation\Inspiring;
-use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Schedule;
 
-Artisan::command('inspire', function () {
-    $this->comment(Inspiring::quote());
-})->purpose('Display an inspiring quote');
+// Keep the local copy fresh in the background, inside the request budget.
+Schedule::command('football:sync-competitions')->dailyAt('03:00')->withoutOverlapping();
+Schedule::command('football:refresh-stale')->hourly()->withoutOverlapping();
