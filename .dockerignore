@@ -1,0 +1,12 @@
+**/node_modules
+**/vendor
+**/.env
+backend/storage/logs/*
+backend/storage/framework/cache/data/*
+backend/storage/framework/sessions/*
+backend/storage/framework/views/*
+backend/storage/*.key
+backend/database/database.sqlite
+frontend/dist
+.git
+docs
