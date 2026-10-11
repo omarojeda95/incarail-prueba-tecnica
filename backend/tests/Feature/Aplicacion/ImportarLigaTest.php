@@ -135,6 +135,32 @@ class ImportarLigaTest extends TestCase
         $this->assertSame(1, ImportacionLiga::where('liga_id', 2021)->where('cantidad_jugadores', 3)->count());
     }
 
+    #[Test]
+    public function una_competicion_de_selecciones_no_le_quita_el_club_a_sus_jugadores(): void
+    {
+        $this->proveedor->conPlanteles($this->premierLeague());
+        $this->importar()->ejecutar('PL');
+
+        $this->proveedor->conPlanteles(new PlantelesLiga(Proveedor::liga(2000, 'WC'), '2026', [
+            Proveedor::equipo(770, 'England', [
+                Proveedor::jugador(2, 'Bukayo Saka', 'Offence', 7),
+                Proveedor::jugador(90, 'Jugador Sin Club', 'Defence', 4),
+            ]),
+        ]));
+        $this->importar()->ejecutar('WC');
+
+        // El club manda: Saka sigue en el Arsenal, con su número del club.
+        $this->assertDatabaseHas('jugadores', ['id' => 2, 'equipo_id' => 57, 'numero_camiseta' => null]);
+        // Quien aún no tiene club guardado sí queda en su selección.
+        $this->assertDatabaseHas('jugadores', ['id' => 90, 'equipo_id' => 770]);
+        $this->assertDatabaseHas('liga_equipo', ['liga_id' => 2000, 'equipo_id' => 770]);
+
+        // Al volver a importar la liga de clubes, el jugador nuevo de la selección no se toca
+        // y los del club siguen en su club.
+        $this->importar()->ejecutar('PL');
+        $this->assertDatabaseHas('jugadores', ['id' => 2, 'equipo_id' => 57]);
+    }
+
     private function importar(): ImportarLiga
     {
         return $this->app->make(ImportarLiga::class);
