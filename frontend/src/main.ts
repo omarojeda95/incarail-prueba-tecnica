@@ -34,4 +34,16 @@ const terminarSesion = (mensaje: string) => {
 ganchosSesion.alPerderSesion = terminarSesion
 ganchosSesion.alDesactivarCuenta = terminarSesion
 
+// Tras publicar una versión nueva, una pestaña abierta pide pantallas que ya no
+// existen: se recarga una vez en la ruta destino para tomar la versión nueva.
+router.onError((error, destino) => {
+  const esModuloPerdido = /dynamically imported module|Importing a module script failed/.test(
+    String(error?.message),
+  )
+  if (!esModuloPerdido || sessionStorage.getItem('recarga-por-version')) return
+  sessionStorage.setItem('recarga-por-version', '1')
+  window.location.assign(destino.fullPath)
+})
+router.afterEach(() => sessionStorage.removeItem('recarga-por-version'))
+
 app.mount('#app')
