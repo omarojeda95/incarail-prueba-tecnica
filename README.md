@@ -72,7 +72,10 @@ docker compose down                      # detener (añade -v para borrar tambi�
 
 ## 2. Usuarios de prueba
 
-Contraseña de todos: **`password`** (la pantalla de inicio de sesión tiene accesos rápidos).
+Contraseña de todos: **`password`**. En la demo, la pantalla de inicio de sesión tiene accesos rápidos a estos
+usuarios. Son solo una ayuda para evaluar: vienen apagados por defecto, y Docker los activa con
+`MOSTRAR_USUARIOS_PRUEBA=true` (ponlo en `false` en `.env` para ocultarlos). Un build de producción sin esa variable
+no muestra credenciales.
 
 | Usuario | Rol | Puede |
 |---|---|---|
@@ -109,7 +112,7 @@ npm run dev                      # http://localhost:5173
 
 Hay dos plantillas, ninguna con secretos:
 
-- **`.env.example`** (raíz) — lo lee `compose.yml`: `FOOTBALL_DATA_TOKEN`, `SPA_PORT`, `API_PORT`.
+- **`.env.example`** (raíz) — lo lee `compose.yml`: `FOOTBALL_DATA_TOKEN`, `SPA_PORT`, `API_PORT`, `MOSTRAR_USUARIOS_PRUEBA`.
 - **`backend/.env.example`** — configuración completa de Laravel para correrlo sin Docker.
 
 | Variable | Por defecto | Para qué |

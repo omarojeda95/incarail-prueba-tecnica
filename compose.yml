@@ -71,6 +71,8 @@ services:
     build:
       context: .
       dockerfile: docker/nginx/Dockerfile
+      args:
+        MOSTRAR_USUARIOS_PRUEBA: ${MOSTRAR_USUARIOS_PRUEBA:-true}
     image: incarail-web
     restart: unless-stopped
     ports:

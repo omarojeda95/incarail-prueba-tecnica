@@ -5,6 +5,9 @@ COPY frontend/package.json frontend/package-lock.json ./
 RUN npm ci
 COPY frontend/ ./
 ENV VITE_API_BASE_URL=/api
+# Accesos rápidos a los usuarios de prueba en el login (solo para la demo).
+ARG MOSTRAR_USUARIOS_PRUEBA=false
+ENV VITE_MOSTRAR_USUARIOS_PRUEBA=$MOSTRAR_USUARIOS_PRUEBA
 RUN npm run build
 
 FROM nginx:1.29-alpine

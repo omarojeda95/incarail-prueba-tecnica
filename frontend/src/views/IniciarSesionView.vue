@@ -15,6 +15,8 @@ const mostrarContrasena = ref(false)
 const cargando = ref(false)
 const error = ref<ErrorApi | null>(null)
 
+// Solo en la demo: un build sin la variable no muestra credenciales en el login.
+const mostrarUsuariosPrueba = import.meta.env.VITE_MOSTRAR_USUARIOS_PRUEBA === 'true'
 const usuariosPrueba = [
   { correo: 'admin@incarail.test', rol: 'admin' },
   { correo: 'analista@incarail.test', rol: 'analista' },
@@ -93,8 +95,8 @@ function usarPrueba(correoPrueba: string) {
           </v-form>
         </v-card-text>
 
-        <v-divider />
-        <v-card-text>
+        <v-divider v-if="mostrarUsuariosPrueba" />
+        <v-card-text v-if="mostrarUsuariosPrueba">
           <div class="text-caption text-medium-emphasis mb-2">
             Usuarios de prueba (contraseña: password)
           </div>
