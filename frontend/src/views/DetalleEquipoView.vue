@@ -136,8 +136,11 @@ const ficha = computed(() => {
               text="Pasa con torneos internacionales como la Champions League: el proveedor solo entrega los planteles en las ligas nacionales. Importa la liga nacional del equipo para ver sus jugadores."
             />
 
-            <template v-for="grupo in grupos" :key="grupo.titulo">
-              <v-list-subheader class="font-weight-bold">{{ grupo.titulo }}</v-list-subheader>
+            <template v-for="(grupo, indice) in grupos" :key="grupo.titulo">
+              <v-divider v-if="indice > 0" class="mt-4" />
+              <v-list-subheader class="font-weight-bold text-primary pt-4"
+                >{{ grupo.titulo }} ({{ grupo.jugadores.length }})</v-list-subheader
+              >
               <v-table density="comfortable">
                 <tbody>
                   <tr v-for="jugador in grupo.jugadores" :key="jugador.id">
