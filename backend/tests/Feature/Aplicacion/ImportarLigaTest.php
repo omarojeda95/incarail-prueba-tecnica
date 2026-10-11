@@ -161,6 +161,21 @@ class ImportarLigaTest extends TestCase
         $this->assertDatabaseHas('jugadores', ['id' => 2, 'equipo_id' => 57]);
     }
 
+    #[Test]
+    public function un_jugador_repetido_en_dos_equipos_no_rompe_la_importacion(): void
+    {
+        // football-data a veces lista a un jugador en dos planteles (traspaso o préstamo).
+        $this->proveedor->conPlanteles(new PlantelesLiga(Proveedor::liga(), '2026', [
+            Proveedor::equipo(57, 'Arsenal FC', [Proveedor::jugador(1, 'David Raya', 'Goalkeeper', 22)]),
+            Proveedor::equipo(65, 'Manchester City FC', [Proveedor::jugador(1, 'David Raya', 'Goalkeeper', 1)]),
+        ]));
+
+        $this->importar()->ejecutar('PL');
+
+        $this->assertSame(1, Jugador::count());
+        $this->assertDatabaseHas('jugadores', ['id' => 1, 'equipo_id' => 65, 'numero_camiseta' => 1]);
+    }
+
     private function importar(): ImportarLiga
     {
         return $this->app->make(ImportarLiga::class);
