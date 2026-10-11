@@ -138,13 +138,13 @@ const ficha = computed(() => {
 
             <template v-for="(grupo, indice) in grupos" :key="grupo.titulo">
               <v-divider v-if="indice > 0" class="mt-4" />
-              <v-list-subheader class="font-weight-bold text-primary pt-4"
-                >{{ grupo.titulo }} ({{ grupo.jugadores.length }})</v-list-subheader
-              >
-              <v-table density="comfortable">
+              <div class="text-subtitle-2 font-weight-bold text-primary px-4 pt-4 pb-1">
+                {{ grupo.titulo }} ({{ grupo.jugadores.length }})
+              </div>
+              <v-table density="comfortable" class="tabla-plantel">
                 <tbody>
                   <tr v-for="jugador in grupo.jugadores" :key="jugador.id">
-                    <td style="width: 56px">
+                    <td class="col-numero">
                       <v-avatar size="32" color="primary" variant="tonal">
                         <span class="text-caption font-weight-bold">{{
                           jugador.numero_camiseta ?? '–'
@@ -157,17 +157,36 @@ const ficha = computed(() => {
                         {{ etiquetaPosicion(jugador.posicion) }}
                       </div>
                     </td>
-                    <td class="d-none d-sm-table-cell">{{ jugador.nacionalidad }}</td>
-                    <td class="text-right text-no-wrap">
+                    <td class="d-none d-sm-table-cell col-nacionalidad">
+                      {{ jugador.nacionalidad }}
+                    </td>
+                    <td class="text-right text-no-wrap col-edad">
                       {{ jugador.edad ? `${jugador.edad} años` : '' }}
                     </td>
                   </tr>
                 </tbody>
               </v-table>
             </template>
+            <div class="pb-2" />
           </v-card>
         </v-col>
       </v-row>
     </template>
   </EstadoAsincrono>
 </template>
+
+<style scoped>
+/* Cada línea del plantel es una tabla: anchos fijos para que las columnas queden alineadas. */
+.tabla-plantel :deep(table) {
+  table-layout: fixed;
+}
+.col-numero {
+  width: 64px;
+}
+.col-nacionalidad {
+  width: 32%;
+}
+.col-edad {
+  width: 96px;
+}
+</style>
