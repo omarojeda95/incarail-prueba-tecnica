@@ -515,6 +515,10 @@ PostgreSQL; lint, formato, type-check, pruebas y build del frontend; build de la
 - **Número de camiseta:** el plantel de football-data v4 no siempre lo trae (depende del plan). Se guarda cuando
   viene y si no queda `null`. Pedir `/persons/{id}` jugador por jugador costaría cientos de peticiones y
   rompería el límite.
+- **Planteles de torneos internacionales:** football-data envía los planteles en las ligas nacionales, pero en
+  la Champions League casi todos los equipos llegan sin jugadores (en la prueba, 2 de 36 traían plantel). La
+  importación guarda lo que llega y la SPA lo avisa. Al importar la liga nacional de un equipo, sus jugadores
+  aparecen también en la Champions, porque el jugador se guarda una sola vez por su id.
 - Solo las ligas del plan **`TIER_ONE`** son importables con el token gratuito (configurable). El resto se lista,
   pero la SPA las muestra deshabilitadas.
 - Una liga se considera **fresca durante 12 h** y el catálogo durante 24 h (configurables).

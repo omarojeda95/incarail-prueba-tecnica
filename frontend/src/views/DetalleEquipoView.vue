@@ -125,11 +125,15 @@ const ficha = computed(() => {
             </v-card-item>
 
             <v-empty-state
-              v-if="grupos.length === 0"
+              v-if="grupos.length === 0 && filtro"
               icon="mdi-account-off-outline"
-              :title="
-                filtro ? 'Ningún jugador coincide' : 'Este equipo no tiene jugadores guardados'
-              "
+              title="Ningún jugador coincide"
+            />
+            <v-empty-state
+              v-else-if="grupos.length === 0"
+              icon="mdi-account-off-outline"
+              title="football-data no envió el plantel de este equipo"
+              text="Pasa con torneos internacionales como la Champions League: el proveedor solo entrega los planteles en las ligas nacionales. Importa la liga nacional del equipo para ver sus jugadores."
             />
 
             <template v-for="grupo in grupos" :key="grupo.titulo">

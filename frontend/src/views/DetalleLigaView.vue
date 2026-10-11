@@ -35,6 +35,11 @@ const equipos = computed(() => {
   )
 })
 
+/** Torneos como la Champions llegan sin planteles: football-data solo los manda en las ligas nacionales. */
+const equiposSinPlantel = computed(
+  () => (liga.value?.equipos ?? []).filter((equipo) => !equipo.cantidad_jugadores).length,
+)
+
 const encolando = ref(false)
 async function actualizarEnSegundoPlano() {
   encolando.value = true
@@ -119,6 +124,20 @@ async function actualizarEnSegundoPlano() {
           </v-card>
         </v-col>
       </v-row>
+
+      <v-alert
+        v-if="equiposSinPlantel > 0"
+        type="info"
+        variant="tonal"
+        border="start"
+        class="mb-4"
+        title="Algunos equipos no tienen plantel"
+      >
+        football-data no envió los jugadores de {{ equiposSinPlantel }} de
+        {{ liga.equipos?.length }} equipos. Pasa con torneos internacionales como la Champions
+        League: el proveedor solo entrega los planteles en las ligas nacionales. Al importar la liga
+        nacional de cada equipo, sus jugadores aparecen también aquí.
+      </v-alert>
 
       <div class="d-flex align-center ga-4 my-4 flex-wrap">
         <h2 class="text-h6 flex-grow-1">Equipos</h2>
