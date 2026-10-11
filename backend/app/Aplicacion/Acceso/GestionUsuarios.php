@@ -4,10 +4,25 @@ namespace App\Aplicacion\Acceso;
 
 use App\Dominio\Acceso\Excepciones\ReglaDeAccesoViolada;
 use App\Models\Usuario;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 
 final class GestionUsuarios
 {
+    /** @param  array{buscar?: string, por_pagina?: int}  $filtros */
+    public function paginar(array $filtros): LengthAwarePaginator
+    {
+        return Usuario::query()
+            ->with('roles')
+            ->when($filtros['buscar'] ?? null, fn (Builder $query, string $texto) => $query->where(
+                fn (Builder $query) => $query->whereLike('nombre', "%{$texto}%")->orWhereLike('correo', "%{$texto}%")
+            ))
+            ->orderBy('nombre')
+            ->paginate($filtros['por_pagina'] ?? 20)
+            ->withQueryString();
+    }
+
     /** @param  array{nombre: string, correo: string, contrasena: string, roles?: list<string>}  $datos */
     public function crear(array $datos): Usuario
     {

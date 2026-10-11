@@ -10,7 +10,7 @@ equipos y jugadores, y administrar usuarios, roles y permisos.
 | **Backend** | Laravel 13.35 · PHP 8.5 · Passport 13 · spatie/laravel-permission 8 · PostgreSQL 17 · Redis 7 |
 | **Frontend** | Vue 3.5 · TypeScript · Vue Router · Pinia · Vuetify 4 · CASL · Vite |
 | **Infra** | Docker Compose: nginx + PHP-FPM, worker de colas, scheduler, PostgreSQL y Redis (Linux/Alpine) |
-| **Calidad** | 86 pruebas PHPUnit (unitarias, integración y aceptación), 10 de Vitest, Pint, ESLint/Oxlint, Prettier, GitHub Actions |
+| **Calidad** | 87 pruebas PHPUnit (unitarias, integración y aceptación), 10 de Vitest, Pint, ESLint/Oxlint, Prettier, GitHub Actions |
 
 ---
 

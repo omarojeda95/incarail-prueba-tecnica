@@ -6,6 +6,7 @@ use App\Aplicacion\Acceso\GestionUsuarios;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Acceso\CrearUsuarioRequest;
 use App\Http\Requests\Acceso\EditarUsuarioRequest;
+use App\Http\Requests\Acceso\ListarUsuariosRequest;
 use App\Http\Resources\UsuarioResource;
 use App\Models\Usuario;
 use Illuminate\Http\JsonResponse;
@@ -16,20 +17,9 @@ class UsuarioController extends Controller
 {
     public function __construct(private readonly GestionUsuarios $usuarios) {}
 
-    public function index(Request $request): AnonymousResourceCollection
+    public function index(ListarUsuariosRequest $request): AnonymousResourceCollection
     {
-        $request->validate(['buscar' => ['nullable', 'string', 'max:100'], 'por_pagina' => ['nullable', 'integer', 'between:1,100']]);
-
-        $usuarios = Usuario::query()
-            ->with('roles')
-            ->when($request->query('buscar'), fn ($query, $texto) => $query->where(
-                fn ($query) => $query->whereLike('nombre', "%{$texto}%")->orWhereLike('correo', "%{$texto}%")
-            ))
-            ->orderBy('nombre')
-            ->paginate($request->integer('por_pagina', 20))
-            ->withQueryString();
-
-        return UsuarioResource::collection($usuarios);
+        return UsuarioResource::collection($this->usuarios->paginar($request->filtros()));
     }
 
     public function store(CrearUsuarioRequest $request): JsonResponse

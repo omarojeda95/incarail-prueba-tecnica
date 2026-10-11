@@ -80,6 +80,13 @@ class GestionUsuariosTest extends TestCase
     }
 
     #[Test]
+    public function los_filtros_del_listado_de_usuarios_se_validan(): void
+    {
+        $this->assertErrorApi($this->getJson('/usuarios?por_pagina=500'), 422, 'validacion_fallida')
+            ->assertJsonPath('error.detalles.campos.por_pagina.0', 'El campo tamaño de página debe estar entre 1 y 100.');
+    }
+
+    #[Test]
     public function desactivar_un_usuario_cierra_sus_sesiones_y_bloquea_nuevos_ingresos(): void
     {
         $usuario = $this->usuarioConRol('consulta');
