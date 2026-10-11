@@ -35,7 +35,7 @@ const equipos = computed(() => {
   )
 })
 
-/** Torneos como la Champions llegan sin planteles: football-data solo los manda en las ligas nacionales. */
+/** Equipos sin jugadores: clubes de la Champions (llegan sin plantel) o selecciones (el jugador queda en su club). */
 const equiposSinPlantel = computed(
   () => (liga.value?.equipos ?? []).filter((equipo) => !equipo.cantidad_jugadores).length,
 )
@@ -131,12 +131,12 @@ async function actualizarEnSegundoPlano() {
         variant="tonal"
         border="start"
         class="mb-4"
-        title="Algunos equipos no tienen plantel"
+        title="Algunos equipos no muestran jugadores"
       >
-        football-data no envió los jugadores de {{ equiposSinPlantel }} de
-        {{ liga.equipos?.length }} equipos. Pasa con torneos internacionales como la Champions
-        League: el proveedor solo entrega los planteles en las ligas nacionales. Al importar la liga
-        nacional de cada equipo, sus jugadores aparecen también aquí.
+        {{ equiposSinPlantel }} de {{ liga.equipos?.length }} equipos no tienen jugadores guardados.
+        En la Champions, football-data no envía los planteles: los jugadores de un club aparecen al
+        importar su liga nacional. En el Mundial y la Eurocopa, cada jugador aparece en su club y no
+        en su selección.
       </v-alert>
 
       <div class="d-flex align-center ga-4 my-4 flex-wrap">

@@ -132,8 +132,8 @@ const ficha = computed(() => {
             <v-empty-state
               v-else-if="grupos.length === 0"
               icon="mdi-account-off-outline"
-              title="football-data no envió el plantel de este equipo"
-              text="Pasa con torneos internacionales como la Champions League: el proveedor solo entrega los planteles en las ligas nacionales. Importa la liga nacional del equipo para ver sus jugadores."
+              title="Este equipo no tiene jugadores guardados"
+              text="Si es un club, importa su liga nacional: en la Champions football-data no envía los planteles. Si es una selección del Mundial o la Eurocopa, cada jugador aparece en su club."
             />
 
             <template v-for="(grupo, indice) in grupos" :key="grupo.titulo">
