@@ -90,6 +90,13 @@ final class ImportarLiga
             }
         }
 
+        // Un jugador guarda un solo equipo: su club. Una competición de selecciones
+        // (Mundial, Eurocopa) solo agrega a los jugadores que todavía no están guardados.
+        if (in_array($planteles->liga->codigo, config('futbol.competiciones_selecciones'), true)) {
+            $guardados = Jugador::query()->whereKey(array_column($jugadores, 'id'))->pluck('id')->flip();
+            $jugadores = array_filter($jugadores, fn (array $jugador) => ! $guardados->has($jugador['id']));
+        }
+
         usort($equipos, fn (array $a, array $b) => $a['id'] <=> $b['id']);
         usort($jugadores, fn (array $a, array $b) => $a['id'] <=> $b['id']);
 

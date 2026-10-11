@@ -10,7 +10,7 @@ equipos y jugadores, y administrar usuarios, roles y permisos.
 | **Backend** | Laravel 13.35 · PHP 8.5 · Passport 13 · spatie/laravel-permission 8 · PostgreSQL 17 · Redis 7 |
 | **Frontend** | Vue 3.5 · TypeScript · Vue Router · Pinia · Vuetify 4 · CASL · Vite |
 | **Infra** | Docker Compose: nginx + PHP-FPM, worker de colas, scheduler, PostgreSQL y Redis (Linux/Alpine) |
-| **Calidad** | 87 pruebas PHPUnit (unitarias, integración y aceptación), 10 de Vitest, Pint, ESLint/Oxlint, Prettier, GitHub Actions |
+| **Calidad** | 88 pruebas PHPUnit (unitarias, integración y aceptación), 10 de Vitest, Pint, ESLint/Oxlint, Prettier, GitHub Actions |
 
 ---
 
@@ -120,6 +120,7 @@ Hay dos plantillas, ninguna con secretos:
 | `FOOTBALL_DATA_TOKEN` | — | Token personal de football-data.org. Solo en `.env`, nunca en el código ni en el repositorio. |
 | `FOOTBALL_DATA_MAX_REQUESTS_PER_MINUTE` | `10` | Presupuesto de peticiones salientes por minuto. |
 | `FOOTBALL_DATA_AVAILABLE_PLANS` | `TIER_ONE` | Planes de football-data que el token puede leer (el gratuito solo `TIER_ONE`). |
+| `FOOTBALL_NATIONAL_TEAM_COMPETITIONS` | `WC,EC` | Competiciones de selecciones: al importarlas no se le cambia el club a un jugador ya guardado. |
 | `FOOTBALL_COMPETITIONS_TTL_MINUTES` | `1440` | Cada cuánto se considera vencido el catálogo de ligas. |
 | `FOOTBALL_COMPETITION_DETAIL_TTL_MINUTES` | `720` | Cada cuánto se considera vencida una liga importada. |
 | `PASSPORT_TOKEN_TTL_MINUTES` | `480` | Vida del token de acceso emitido al iniciar sesión. |
@@ -522,6 +523,10 @@ PostgreSQL; lint, formato, type-check, pruebas y build del frontend; build de la
   la Champions League casi todos los equipos llegan sin jugadores (en la prueba, 2 de 36 traían plantel). La
   importación guarda lo que llega y la SPA lo avisa. Al importar la liga nacional de un equipo, sus jugadores
   aparecen también en la Champions, porque el jugador se guarda una sola vez por su id.
+- **Club y selección:** cada jugador guarda un solo equipo, su club. Al importar el Mundial o la Eurocopa
+  (configurable), los jugadores que ya están guardados conservan su club; en la selección solo aparecen los que
+  todavía no tienen club importado. Sin esta regla, importar el Mundial después de la Bundesliga dejaba al Bayern
+  con 7 jugadores. Guardar ambas pertenencias necesitaría una tabla intermedia jugador–equipo.
 - Solo las ligas del plan **`TIER_ONE`** son importables con el token gratuito (configurable). El resto se lista,
   pero la SPA las muestra deshabilitadas.
 - Una liga se considera **fresca durante 12 h** y el catálogo durante 24 h (configurables).

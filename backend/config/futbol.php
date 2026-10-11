@@ -25,6 +25,10 @@ return [
         'almacen_cache' => env('FOOTBALL_DATA_RATE_LIMIT_STORE'),
     ],
 
+    // Competiciones de selecciones: un jugador guarda su club, así que importarlas no
+    // le cambia el equipo a quien ya está guardado (solo se agregan los que faltan).
+    'competiciones_selecciones' => array_filter(explode(',', env('FOOTBALL_NATIONAL_TEAM_COMPETITIONS', 'WC,EC'))),
+
     // Planes que nuestro token puede leer. Las demás ligas se listan pero no se importan.
     'planes_disponibles' => array_filter(explode(',', env('FOOTBALL_DATA_AVAILABLE_PLANS', 'TIER_ONE'))),
 
