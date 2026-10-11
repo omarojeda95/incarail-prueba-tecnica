@@ -90,6 +90,11 @@ final class ImportarLiga
             }
         }
 
+        // football-data puede listar a un jugador en dos planteles (traspaso o préstamo).
+        // Un upsert de PostgreSQL no admite la misma clave dos veces: gana la última aparición.
+        $equipos = array_values(array_column($equipos, null, 'id'));
+        $jugadores = array_values(array_column($jugadores, null, 'id'));
+
         // Un jugador guarda un solo equipo: su club. Una competición de selecciones
         // (Mundial, Eurocopa) solo agrega a los jugadores que todavía no están guardados.
         if (in_array($planteles->liga->codigo, config('futbol.competiciones_selecciones'), true)) {

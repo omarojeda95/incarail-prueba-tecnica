@@ -10,7 +10,7 @@ equipos y jugadores, y administrar usuarios, roles y permisos.
 | **Backend** | Laravel 13.35 · PHP 8.5 · Passport 13 · spatie/laravel-permission 8 · PostgreSQL 17 · Redis 7 |
 | **Frontend** | Vue 3.5 · TypeScript · Vue Router · Pinia · Vuetify 4 · CASL · Vite |
 | **Infra** | Docker Compose: nginx + PHP-FPM, worker de colas, scheduler, PostgreSQL y Redis (Linux/Alpine) |
-| **Calidad** | 88 pruebas PHPUnit (unitarias, integración y aceptación), 10 de Vitest, Pint, ESLint/Oxlint, Prettier, GitHub Actions |
+| **Calidad** | 89 pruebas PHPUnit (unitarias, integración y aceptación), 10 de Vitest, Pint, ESLint/Oxlint, Prettier, GitHub Actions |
 
 ---
 
@@ -526,7 +526,10 @@ PostgreSQL; lint, formato, type-check, pruebas y build del frontend; build de la
 - **Club y selección:** cada jugador guarda un solo equipo, su club. Al importar el Mundial o la Eurocopa
   (configurable), los jugadores que ya están guardados conservan su club; en la selección solo aparecen los que
   todavía no tienen club importado. Sin esta regla, importar el Mundial después de la Bundesliga dejaba al Bayern
-  con 7 jugadores. Guardar ambas pertenencias necesitaría una tabla intermedia jugador–equipo.
+  con 7 jugadores. Guardar ambas pertenencias necesitaría una tabla intermedia jugador–equipo. Por lo mismo, en el
+  detalle del Mundial el total de jugadores (lo que envió football-data) es mayor que la suma de las selecciones.
+- **Jugadores repetidos:** football-data a veces lista a un jugador en dos planteles (traspaso o préstamo). La
+  importación se queda con la última aparición; sin eso, PostgreSQL rechazaba el upsert y la liga no se guardaba.
 - Solo las ligas del plan **`TIER_ONE`** son importables con el token gratuito (configurable). El resto se lista,
   pero la SPA las muestra deshabilitadas.
 - Una liga se considera **fresca durante 12 h** y el catálogo durante 24 h (configurables).
@@ -536,6 +539,10 @@ PostgreSQL; lint, formato, type-check, pruebas y build del frontend; build de la
 
 ## 12. Pendiente y cómo lo haría
 
+- **Jugadores que dejan el club:** al reimportar una liga se actualizan los jugadores que vienen en el plantel, pero
+  quien se fue a una liga no importada sigue apareciendo en su club anterior. Lo resolvería dejando sin equipo, al
+  importar una liga de clubes, a los jugadores de esos equipos que ya no vienen en su plantel (sin aplicarlo a las
+  competiciones de selecciones).
 - **Pruebas E2E del navegador** (Playwright/Cypress) sobre la SPA. Hoy la aceptación está a nivel de API y el
   frontend tiene pruebas unitarias.
 - **Refresh tokens** para renovar la sesión sin volver a iniciarla (hoy el token dura 8 h y se pide login).
