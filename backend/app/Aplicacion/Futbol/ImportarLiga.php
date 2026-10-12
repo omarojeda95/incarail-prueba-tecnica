@@ -8,6 +8,7 @@ use App\Dominio\Futbol\Datos\PlantelesLiga;
 use App\Dominio\Futbol\Eventos\LigaImportada;
 use App\Dominio\Futbol\Puertos\ProveedorDatosFutbol;
 use App\Models\Equipo;
+use App\Models\EquipoJugador;
 use App\Models\Jugador;
 use App\Models\Liga;
 use App\Models\LigaEquipo;
@@ -59,9 +60,12 @@ final class ImportarLiga
      */
     private function guardarEquiposYJugadores(PlantelesLiga $planteles): void
     {
+        $esDeSelecciones = in_array($planteles->liga->codigo, config('futbol.competiciones_selecciones'), true);
+
         $equipos = array_map(fn (DatosEquipo $equipo) => [
             'id' => $equipo->id,
             'nombre' => $equipo->nombre,
+            'tipo' => $esDeSelecciones ? 'seleccion' : 'club',
             'nombre_corto' => $equipo->nombreCorto,
             'sigla' => $equipo->sigla,
             'escudo' => $equipo->escudo,
@@ -80,7 +84,6 @@ final class ImportarLiga
             foreach ($equipo->plantel as $jugador) {
                 $jugadores[] = [
                     'id' => $jugador->id,
-                    'equipo_id' => $equipo->id,
                     'nombre' => $jugador->nombre,
                     'posicion' => $jugador->posicion,
                     'numero_camiseta' => $jugador->numeroCamiseta,
@@ -90,14 +93,23 @@ final class ImportarLiga
             }
         }
 
+        // Pertenencias al plantel: un jugador puede estar en su club y en su selección.
+        $pertenencias = [];
+        foreach ($planteles->equipos as $equipo) {
+            foreach ($equipo->plantel as $jugador) {
+                $pertenencias["{$equipo->id}-{$jugador->id}"] = ['equipo_id' => $equipo->id, 'jugador_id' => $jugador->id];
+            }
+        }
+        ksort($pertenencias, SORT_NATURAL);
+
         // football-data puede listar a un jugador en dos planteles (traspaso o préstamo).
         // Un upsert de PostgreSQL no admite la misma clave dos veces: gana la última aparición.
         $equipos = array_values(array_column($equipos, null, 'id'));
         $jugadores = array_values(array_column($jugadores, null, 'id'));
 
-        // Un jugador guarda un solo equipo: su club. Una competición de selecciones
-        // (Mundial, Eurocopa) solo agrega a los jugadores que todavía no están guardados.
-        if (in_array($planteles->liga->codigo, config('futbol.competiciones_selecciones'), true)) {
+        // Una competición de selecciones (Mundial, Eurocopa) no pisa los datos que trajo el club
+        // (por ejemplo, el número de camiseta): solo agrega a los jugadores que todavía no están guardados.
+        if ($esDeSelecciones) {
             $guardados = Jugador::query()->whereKey(array_column($jugadores, 'id'))->pluck('id')->flip();
             $jugadores = array_filter($jugadores, fn (array $jugador) => ! $guardados->has($jugador['id']));
         }
@@ -111,6 +123,24 @@ final class ImportarLiga
 
         foreach (array_chunk($jugadores, 500) as $lote) {
             Jugador::query()->upsert($lote, ['id'], array_keys(array_diff_key($lote[0], ['id' => true])));
+        }
+
+        foreach (array_chunk(array_values($pertenencias), 500) as $lote) {
+            EquipoJugador::query()->upsert($lote, ['equipo_id', 'jugador_id'], ['actualizado_en']);
+        }
+
+        // Una liga trae el plantel completo de cada club: quien ya no viene (traspaso, préstamo)
+        // sale de ese plantel. Las copas (Champions, Mundial) solo agregan, porque football-data
+        // envía sus planteles incompletos o vacíos.
+        if ($planteles->liga->tipo === 'LEAGUE' && ! $esDeSelecciones) {
+            foreach ($planteles->equipos as $equipo) {
+                if ($equipo->plantel !== []) {
+                    EquipoJugador::query()
+                        ->where('equipo_id', $equipo->id)
+                        ->whereNotIn('jugador_id', array_map(fn ($jugador) => $jugador->id, $equipo->plantel))
+                        ->delete();
+                }
+            }
         }
     }
 

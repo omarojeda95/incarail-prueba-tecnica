@@ -10,12 +10,11 @@ use Illuminate\Database\Eloquent\Attributes\WithoutIncrementing;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Table('equipos')]
 #[WithoutIncrementing]
 #[Fillable([
-    'id', 'nombre', 'nombre_corto', 'sigla', 'escudo', 'direccion', 'sitio_web', 'fundacion',
+    'id', 'nombre', 'tipo', 'nombre_corto', 'sigla', 'escudo', 'direccion', 'sitio_web', 'fundacion',
     'colores', 'estadio', 'area_nombre', 'entrenador', 'actualizado_proveedor_en',
 ])]
 class Equipo extends Model
@@ -28,10 +27,14 @@ class Equipo extends Model
         return ['actualizado_proveedor_en' => 'datetime'];
     }
 
-    /** @return HasMany<Jugador, $this> */
-    public function jugadores(): HasMany
+    /**
+     * Plantel: todos los jugadores del equipo, incluidos los de una selección que tienen otro club.
+     *
+     * @return BelongsToMany<Jugador, $this>
+     */
+    public function jugadores(): BelongsToMany
     {
-        return $this->hasMany(Jugador::class);
+        return $this->belongsToMany(Jugador::class, 'equipo_jugador')->using(EquipoJugador::class)->withTimestamps();
     }
 
     /** @return BelongsToMany<Liga, $this> */

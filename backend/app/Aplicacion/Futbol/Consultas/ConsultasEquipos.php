@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Builder;
 /** Consultas sobre los equipos guardados. Nunca llaman a football-data. */
 final class ConsultasEquipos
 {
-    /** @param  array{buscar?: string, liga_id?: int, por_pagina?: int}  $filtros */
+    /** @param  array{buscar?: string, liga_id?: int, tipo?: string, por_pagina?: int}  $filtros */
     public function paginar(array $filtros): LengthAwarePaginator
     {
         return Equipo::query()
@@ -21,6 +21,7 @@ final class ConsultasEquipos
                     ->orWhereLike('sigla', "%{$texto}%")
             ))
             ->when($filtros['liga_id'] ?? null, fn (Builder $query, int $ligaId) => $query->whereRelation('ligas', 'ligas.id', $ligaId))
+            ->when($filtros['tipo'] ?? null, fn (Builder $query, string $tipo) => $query->where('tipo', $tipo))
             ->orderBy('nombre')
             ->paginate($filtros['por_pagina'] ?? 20)
             ->withQueryString();

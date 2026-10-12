@@ -2,7 +2,6 @@
 
 namespace Database\Factories;
 
-use App\Models\Equipo;
 use App\Models\Jugador;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
@@ -15,7 +14,6 @@ class JugadorFactory extends Factory
     {
         return [
             'id' => fake()->unique()->numberBetween(1, 9999999),
-            'equipo_id' => Equipo::factory(),
             'nombre' => fake()->name(),
             'posicion' => fake()->randomElement(['Goalkeeper', 'Defence', 'Midfield', 'Offence']),
             'numero_camiseta' => fake()->numberBetween(1, 99),

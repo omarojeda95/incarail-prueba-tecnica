@@ -23,9 +23,9 @@ final class ConsultasJugadores
         $orden = in_array($filtros['orden'] ?? null, self::ORDENABLES, true) ? $filtros['orden'] : 'nombre';
 
         return Jugador::query()
-            ->with('equipo:id,nombre,nombre_corto,escudo')
+            ->with('equipos')
             ->when($filtros['buscar'] ?? null, fn (Builder $query, string $texto) => $query->whereLike('nombre', "%{$texto}%"))
-            ->when($filtros['equipo_id'] ?? null, fn (Builder $query, int $equipoId) => $query->where('equipo_id', $equipoId))
+            ->when($filtros['equipo_id'] ?? null, fn (Builder $query, int $equipoId) => $query->whereRelation('equipos', 'equipos.id', $equipoId))
             ->when($filtros['posicion'] ?? null, fn (Builder $query, string $posicion) => $query->where('posicion', $posicion))
             ->when($filtros['nacionalidad'] ?? null, fn (Builder $query, string $nacionalidad) => $query->where('nacionalidad', $nacionalidad))
             ->orderBy($orden, ($filtros['direccion'] ?? 'asc') === 'desc' ? 'desc' : 'asc')
@@ -36,7 +36,7 @@ final class ConsultasJugadores
 
     public function buscar(int $id): Jugador
     {
-        return Jugador::query()->with('equipo:id,nombre,nombre_corto,escudo')->findOrFail($id);
+        return Jugador::query()->with('equipos')->findOrFail($id);
     }
 
     /**

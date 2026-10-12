@@ -14,6 +14,7 @@ class EquipoResource extends JsonResource
         return [
             'id' => $this->id,
             'nombre' => $this->nombre,
+            'tipo' => $this->tipo,
             'nombre_corto' => $this->nombre_corto,
             'sigla' => $this->sigla,
             'escudo' => $this->escudo,
