@@ -55,6 +55,7 @@ export interface LigaDeEquipo {
 export interface Equipo {
   id: number
   nombre: string
+  tipo: 'club' | 'seleccion'
   nombre_corto: string | null
   sigla: string | null
   escudo: string | null

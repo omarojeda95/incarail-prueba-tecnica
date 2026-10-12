@@ -61,7 +61,8 @@ const ficha = computed(() => {
       <AvatarEscudo :src="equipo.escudo" :nombre="equipo.nombre" tamano="56" />
     </template>
     <template v-if="equipo" #subtitulo>
-      {{ equipo.area }} · {{ equipo.sigla }}
+      {{ equipo.tipo === 'seleccion' ? 'Selección' : 'Club' }} · {{ equipo.area }} ·
+      {{ equipo.sigla }}
       <a
         v-if="equipo.sitio_web"
         :href="equipo.sitio_web"
@@ -133,7 +134,7 @@ const ficha = computed(() => {
               v-else-if="grupos.length === 0"
               icon="mdi-account-off-outline"
               title="Este equipo no tiene jugadores guardados"
-              text="Si es un club, importa su liga nacional: en la Champions football-data no envía los planteles. Si es una selección del Mundial o la Eurocopa, cada jugador aparece en su club."
+              text="Si es un club de la Champions, importa su liga nacional: en la Champions football-data no envía los planteles."
             />
 
             <template v-for="(grupo, indice) in grupos" :key="grupo.titulo">

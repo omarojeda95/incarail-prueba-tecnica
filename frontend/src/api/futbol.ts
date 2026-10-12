@@ -11,6 +11,7 @@ export interface FiltrosLigas {
 export interface FiltrosEquipos {
   buscar?: string
   liga_id?: number
+  tipo?: 'club' | 'seleccion'
   page?: number
   por_pagina?: number
 }

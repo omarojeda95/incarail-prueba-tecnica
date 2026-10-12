@@ -13,18 +13,24 @@ const { can } = useAbility<HabilidadesApp>()
 
 const buscar = useRefConRetraso('')
 const ligaId = ref<number | null>(null)
+const tipo = ref<'club' | 'seleccion' | null>(null)
+const tipos = [
+  { title: 'Clubes', value: 'club' },
+  { title: 'Selecciones', value: 'seleccion' },
+]
 const pagina = ref(1)
 
 const { datos, cargando, error, ejecutar } = useAsincrono(() =>
   apiFutbol.equipos({
     buscar: buscar.value,
     liga_id: ligaId.value ?? undefined,
+    tipo: tipo.value ?? undefined,
     page: pagina.value,
     por_pagina: 24,
   }),
 )
 
-watch([buscar, ligaId], () => {
+watch([buscar, ligaId, tipo], () => {
   pagina.value = 1
   ejecutar()
 })
@@ -44,7 +50,7 @@ onMounted(() => {
 
   <v-card class="mb-6 pa-4" variant="flat" border>
     <v-row dense>
-      <v-col cols="12" md="7">
+      <v-col cols="12" md="5">
         <v-text-field
           :model-value="buscar"
           label="Buscar por nombre o sigla"
@@ -53,7 +59,7 @@ onMounted(() => {
           @update:model-value="buscar = $event ?? ''"
         />
       </v-col>
-      <v-col cols="12" md="5">
+      <v-col cols="12" sm="6" md="4">
         <v-autocomplete
           v-model="ligaId"
           :items="ligas.datos.value?.data ?? []"
@@ -64,6 +70,9 @@ onMounted(() => {
           label="Liga"
           clearable
         />
+      </v-col>
+      <v-col cols="12" sm="6" md="3">
+        <v-select v-model="tipo" :items="tipos" label="Tipo" clearable />
       </v-col>
     </v-row>
   </v-card>
@@ -76,14 +85,14 @@ onMounted(() => {
     icono-vacio="mdi-shield-off-outline"
     titulo-vacio="Todavía no hay equipos"
     :texto-vacio="
-      buscar || ligaId
+      buscar || ligaId || tipo
         ? 'Ningún equipo coincide con los filtros.'
         : 'Importa una liga para ver sus equipos aquí.'
     "
     @reintentar="ejecutar"
   >
     <template #acciones-vacio>
-      <v-btn v-if="!buscar && !ligaId && can('ver', 'Liga')" to="/ligas" color="primary"
+      <v-btn v-if="!buscar && !ligaId && !tipo && can('ver', 'Liga')" to="/ligas" color="primary"
         >Ver ligas</v-btn
       >
     </template>
@@ -101,7 +110,10 @@ onMounted(() => {
             <v-card-title class="text-body-1 font-weight-medium text-wrap">{{
               equipo.nombre
             }}</v-card-title>
-            <v-card-subtitle>{{ equipo.area }} · {{ equipo.sigla }}</v-card-subtitle>
+            <v-card-subtitle
+              >{{ equipo.tipo === 'seleccion' ? 'Selección' : 'Club' }} · {{ equipo.area }} ·
+              {{ equipo.sigla }}</v-card-subtitle
+            >
           </v-card-item>
           <v-card-text class="d-flex ga-2 flex-wrap">
             <v-chip size="x-small" prepend-icon="mdi-account-group"
