@@ -223,6 +223,9 @@ class ImportarLigaTest extends TestCase
         $this->assertDatabaseHas('jugadores', ['id' => 1, 'numero_camiseta' => 1]);
         $this->assertDatabaseHas('equipo_jugador', ['equipo_id' => 57, 'jugador_id' => 1]);
         $this->assertDatabaseHas('equipo_jugador', ['equipo_id' => 65, 'jugador_id' => 1]);
+        // Con dos clubes de la misma importación, el club actual es determinista: el de menor id.
+        $this->assertSame(57, Jugador::findOrFail(1)->club()?->id);
+        $this->assertSame(57, Jugador::with('equipos')->findOrFail(1)->club()?->id);
     }
 
     #[Test]

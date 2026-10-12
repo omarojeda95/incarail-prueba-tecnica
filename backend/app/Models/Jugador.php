@@ -42,9 +42,13 @@ class Jugador extends Model
     {
         $equipos = $this->relationLoaded('equipos') ? $this->equipos : $this->equipos()->get();
 
+        // Gana la importación más reciente; si empatan, el club de menor id (siempre el mismo).
         return $equipos
             ->where('tipo', 'club')
-            ->sortByDesc(fn (Equipo $equipo) => $equipo->pivot->actualizado_en)
+            ->sortBy([
+                fn (Equipo $a, Equipo $b) => strval($b->pivot->actualizado_en) <=> strval($a->pivot->actualizado_en),
+                fn (Equipo $a, Equipo $b) => $a->id <=> $b->id,
+            ])
             ->first();
     }
 }
