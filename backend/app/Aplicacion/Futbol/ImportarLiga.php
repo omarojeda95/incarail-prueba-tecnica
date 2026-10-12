@@ -7,22 +7,24 @@ use App\Dominio\Futbol\Datos\DatosLiga;
 use App\Dominio\Futbol\Datos\PlantelesLiga;
 use App\Dominio\Futbol\Eventos\LigaImportada;
 use App\Dominio\Futbol\Puertos\ProveedorDatosFutbol;
-use App\Models\Equipo;
-use App\Models\EquipoJugador;
-use App\Models\Jugador;
 use App\Models\Liga;
 use App\Models\LigaEquipo;
-use DateTimeInterface;
+use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Support\Facades\DB;
 
 /**
  * Comando: copia una liga, sus equipos y sus planteles a nuestra base.
- * Cuesta exactamente una petición a football-data. Toda escritura es un
- * upsert por el id de football-data: repetirla nunca duplica registros.
+ * Cuesta exactamente una petición a football-data. Todo se guarda en una
+ * transacción (si algo falla no queda una liga a medias) y, al terminar,
+ * se publica el evento LigaImportada.
  */
 final class ImportarLiga
 {
-    public function __construct(private readonly ProveedorDatosFutbol $proveedor) {}
+    public function __construct(
+        private readonly ProveedorDatosFutbol $proveedor,
+        private readonly GuardarPlanteles $guardarPlanteles,
+        private readonly Dispatcher $eventos,
+    ) {}
 
     public function ejecutar(int|string $referencia, string $origen = 'peticion'): Liga
     {
@@ -30,13 +32,13 @@ final class ImportarLiga
 
         $liga = DB::transaction(function () use ($planteles) {
             $liga = $this->guardarLiga($planteles->liga);
-            $this->guardarEquiposYJugadores($planteles);
+            $this->guardarPlanteles->ejecutar($planteles);
             $this->vincularEquipos($liga, $planteles);
 
             return $liga;
         });
 
-        LigaImportada::dispatch($liga->id, count($planteles->equipos), $planteles->cantidadJugadores(), $origen);
+        $this->eventos->dispatch(new LigaImportada($liga->id, count($planteles->equipos), $planteles->cantidadJugadores(), $origen));
 
         return $liga;
     }
@@ -52,96 +54,6 @@ final class ImportarLiga
         $liga->save();
 
         return $liga;
-    }
-
-    /**
-     * Las filas se escriben ordenadas por id para que dos importaciones
-     * concurrentes las bloqueen en el mismo orden (sin deadlocks).
-     */
-    private function guardarEquiposYJugadores(PlantelesLiga $planteles): void
-    {
-        $esDeSelecciones = in_array($planteles->liga->codigo, config('futbol.competiciones_selecciones'), true);
-
-        $equipos = array_map(fn (DatosEquipo $equipo) => [
-            'id' => $equipo->id,
-            'nombre' => $equipo->nombre,
-            'tipo' => $esDeSelecciones ? 'seleccion' : 'club',
-            'nombre_corto' => $equipo->nombreCorto,
-            'sigla' => $equipo->sigla,
-            'escudo' => $equipo->escudo,
-            'direccion' => $equipo->direccion,
-            'sitio_web' => $equipo->sitioWeb,
-            'fundacion' => $equipo->fundacion,
-            'colores' => $equipo->colores,
-            'estadio' => $equipo->estadio,
-            'area_nombre' => $equipo->areaNombre,
-            'entrenador' => $equipo->entrenador,
-            'actualizado_proveedor_en' => $equipo->actualizadoEn?->format(DateTimeInterface::ATOM),
-        ], $planteles->equipos);
-
-        $jugadores = [];
-        foreach ($planteles->equipos as $equipo) {
-            foreach ($equipo->plantel as $jugador) {
-                $jugadores[] = [
-                    'id' => $jugador->id,
-                    'nombre' => $jugador->nombre,
-                    'posicion' => $jugador->posicion,
-                    'numero_camiseta' => $jugador->numeroCamiseta,
-                    'fecha_nacimiento' => $jugador->fechaNacimiento?->format('Y-m-d'),
-                    'nacionalidad' => $jugador->nacionalidad,
-                ];
-            }
-        }
-
-        // Pertenencias al plantel: un jugador puede estar en su club y en su selección.
-        $pertenencias = [];
-        foreach ($planteles->equipos as $equipo) {
-            foreach ($equipo->plantel as $jugador) {
-                $pertenencias["{$equipo->id}-{$jugador->id}"] = ['equipo_id' => $equipo->id, 'jugador_id' => $jugador->id];
-            }
-        }
-        ksort($pertenencias, SORT_NATURAL);
-
-        // football-data puede listar a un jugador en dos planteles (traspaso o préstamo).
-        // Un upsert de PostgreSQL no admite la misma clave dos veces: gana la última aparición.
-        $equipos = array_values(array_column($equipos, null, 'id'));
-        $jugadores = array_values(array_column($jugadores, null, 'id'));
-
-        // Una competición de selecciones (Mundial, Eurocopa) no pisa los datos que trajo el club
-        // (por ejemplo, el número de camiseta): solo agrega a los jugadores que todavía no están guardados.
-        if ($esDeSelecciones) {
-            $guardados = Jugador::query()->whereKey(array_column($jugadores, 'id'))->pluck('id')->flip();
-            $jugadores = array_filter($jugadores, fn (array $jugador) => ! $guardados->has($jugador['id']));
-        }
-
-        usort($equipos, fn (array $a, array $b) => $a['id'] <=> $b['id']);
-        usort($jugadores, fn (array $a, array $b) => $a['id'] <=> $b['id']);
-
-        if ($equipos !== []) {
-            Equipo::query()->upsert($equipos, ['id'], array_keys(array_diff_key($equipos[0], ['id' => true])));
-        }
-
-        foreach (array_chunk($jugadores, 500) as $lote) {
-            Jugador::query()->upsert($lote, ['id'], array_keys(array_diff_key($lote[0], ['id' => true])));
-        }
-
-        foreach (array_chunk(array_values($pertenencias), 500) as $lote) {
-            EquipoJugador::query()->upsert($lote, ['equipo_id', 'jugador_id'], ['actualizado_en']);
-        }
-
-        // Una liga trae el plantel completo de cada club: quien ya no viene (traspaso, préstamo)
-        // sale de ese plantel. Las copas (Champions, Mundial) solo agregan, porque football-data
-        // envía sus planteles incompletos o vacíos.
-        if ($planteles->liga->tipo === 'LEAGUE' && ! $esDeSelecciones) {
-            foreach ($planteles->equipos as $equipo) {
-                if ($equipo->plantel !== []) {
-                    EquipoJugador::query()
-                        ->where('equipo_id', $equipo->id)
-                        ->whereNotIn('jugador_id', array_map(fn ($jugador) => $jugador->id, $equipo->plantel))
-                        ->delete();
-                }
-            }
-        }
     }
 
     /**

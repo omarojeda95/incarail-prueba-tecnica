@@ -6,7 +6,7 @@ use App\Aplicacion\Futbol\ImportarLiga;
 use App\Dominio\Futbol\Excepciones\LigaFueraDelPlan;
 use App\Dominio\Futbol\Excepciones\LimiteDePeticionesAlcanzado;
 use App\Dominio\Futbol\Excepciones\ProveedorNoDisponible;
-use App\Jobs\ImportarLigaJob;
+use App\Dominio\Futbol\Puertos\ColaDeImportaciones;
 use App\Models\Liga;
 
 /**
@@ -18,7 +18,10 @@ use App\Models\Liga;
  */
 final class DetalleLiga
 {
-    public function __construct(private readonly ImportarLiga $importar) {}
+    public function __construct(
+        private readonly ImportarLiga $importar,
+        private readonly ColaDeImportaciones $cola,
+    ) {}
 
     public function ejecutar(string $referencia): ResultadoConsulta
     {
@@ -37,7 +40,7 @@ final class DetalleLiga
         try {
             return $this->resultado($this->importar->ejecutar($local?->id ?? $referencia), desactualizado: false, fuente: 'football-data');
         } catch (LimiteDePeticionesAlcanzado $e) {
-            ImportarLigaJob::dispatch($local?->id ?? strtoupper($referencia));
+            $this->cola->encolar($local?->id ?? strtoupper($referencia), 'cola');
 
             if ($local?->estaImportada()) {
                 return $this->resultado($local, desactualizado: true, fuente: 'base_de_datos', reintentarEn: $e->reintentarEn);

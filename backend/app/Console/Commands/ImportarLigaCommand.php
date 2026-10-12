@@ -4,7 +4,7 @@ namespace App\Console\Commands;
 
 use App\Aplicacion\Futbol\ImportarLiga;
 use App\Dominio\Futbol\Excepciones\ExcepcionDatosFutbol;
-use App\Jobs\ImportarLigaJob;
+use App\Dominio\Futbol\Puertos\ColaDeImportaciones;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
@@ -13,13 +13,13 @@ use Illuminate\Console\Command;
 #[Description('Importa ligas (equipos y planteles) desde football-data.org')]
 class ImportarLigaCommand extends Command
 {
-    public function handle(ImportarLiga $importar): int
+    public function handle(ImportarLiga $importar, ColaDeImportaciones $cola): int
     {
         $estado = self::SUCCESS;
 
         foreach ($this->argument('liga') as $liga) {
             if ($this->option('cola')) {
-                ImportarLigaJob::dispatch($liga, 'consola');
+                $cola->encolar($liga, 'consola');
                 $this->components->info("{$liga}: en cola.");
 
                 continue;

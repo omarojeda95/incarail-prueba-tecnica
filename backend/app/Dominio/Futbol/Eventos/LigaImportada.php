@@ -2,12 +2,9 @@
 
 namespace App\Dominio\Futbol\Eventos;
 
-use Illuminate\Foundation\Events\Dispatchable;
-
+/** Evento de dominio: una liga se terminó de importar. */
 final class LigaImportada
 {
-    use Dispatchable;
-
     public function __construct(
         public readonly int $ligaId,
         public readonly int $cantidadEquipos,

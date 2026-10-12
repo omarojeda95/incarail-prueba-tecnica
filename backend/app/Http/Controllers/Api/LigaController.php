@@ -4,10 +4,10 @@ namespace App\Http\Controllers\Api;
 
 use App\Aplicacion\Futbol\Consultas\CatalogoLigas;
 use App\Aplicacion\Futbol\Consultas\DetalleLiga;
+use App\Dominio\Futbol\Puertos\ColaDeImportaciones;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Futbol\ListarLigasRequest;
 use App\Http\Resources\LigaResource;
-use App\Jobs\ImportarLigaJob;
 use App\Models\Liga;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -33,11 +33,11 @@ class LigaController extends Controller
     }
 
     /** Encola la actualización de una liga ya listada (se ejecuta respetando el límite de peticiones). */
-    public function importar(string $competition_id): JsonResponse
+    public function importar(string $competition_id, ColaDeImportaciones $cola): JsonResponse
     {
         $liga = Liga::query()->referencia($competition_id)->firstOrFail();
 
-        ImportarLigaJob::dispatch($liga->id, 'manual');
+        $cola->encolar($liga->id, 'manual');
 
         return response()->json([
             'mensaje' => 'La importación quedó en cola y se ejecutará respetando el límite de football-data.',

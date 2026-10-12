@@ -2,7 +2,7 @@
 
 namespace App\Console\Commands;
 
-use App\Jobs\ImportarLigaJob;
+use App\Dominio\Futbol\Puertos\ColaDeImportaciones;
 use App\Models\Liga;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
@@ -12,7 +12,7 @@ use Illuminate\Console\Command;
 #[Description('Encola la actualización de cada liga importada cuyos datos estén vencidos')]
 class RefrescarLigasVencidasCommand extends Command
 {
-    public function handle(): int
+    public function handle(ColaDeImportaciones $cola): int
     {
         $vencidas = Liga::query()
             ->importadas()
@@ -20,7 +20,7 @@ class RefrescarLigasVencidasCommand extends Command
             ->pluck('id');
 
         // Los jobs se autorregulan con el presupuesto de peticiones compartido.
-        $vencidas->each(fn (int $id) => ImportarLigaJob::dispatch($id, 'programada'));
+        $vencidas->each(fn (int $id) => $cola->encolar($id, 'programada'));
 
         $this->components->info("{$vencidas->count()} ligas encoladas para actualizar.");
 

@@ -2,7 +2,9 @@
 
 namespace App\Providers;
 
+use App\Dominio\Futbol\Puertos\ColaDeImportaciones;
 use App\Dominio\Futbol\Puertos\ProveedorDatosFutbol;
+use App\Infraestructura\Colas\ColaDeImportacionesLaravel;
 use App\Infraestructura\FootballData\ClienteFootballData;
 use App\Infraestructura\FootballData\PresupuestoPeticiones;
 use App\Infraestructura\FootballData\PresupuestoVentanaDeslizante;
@@ -36,6 +38,7 @@ class AppServiceProvider extends ServiceProvider
         ));
 
         $this->app->bind(ProveedorDatosFutbol::class, ClienteFootballData::class);
+        $this->app->bind(ColaDeImportaciones::class, ColaDeImportacionesLaravel::class);
     }
 
     /**
