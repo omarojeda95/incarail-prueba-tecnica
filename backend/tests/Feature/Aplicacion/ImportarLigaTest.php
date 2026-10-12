@@ -42,7 +42,8 @@ class ImportarLigaTest extends TestCase
         $this->assertSame(2, Equipo::count());
         $this->assertSame(3, Jugador::count());
         $this->assertEqualsCanonicalizing([57, 65], $liga->equipos()->pluck('equipos.id')->all());
-        $this->assertDatabaseHas('jugadores', ['id' => 1, 'nombre' => 'David Raya', 'posicion' => 'Goalkeeper', 'numero_camiseta' => 22, 'equipo_id' => 57]);
+        $this->assertDatabaseHas('jugadores', ['id' => 1, 'nombre' => 'David Raya', 'posicion' => 'Goalkeeper', 'numero_camiseta' => 22]);
+        $this->assertSame(57, Jugador::findOrFail(1)->club()?->id);
     }
 
     #[Test]
@@ -72,7 +73,10 @@ class ImportarLigaTest extends TestCase
         ]));
         $this->importar()->ejecutar(2021);
 
-        $this->assertDatabaseHas('jugadores', ['id' => 2, 'equipo_id' => 65, 'numero_camiseta' => 7]);
+        $this->assertDatabaseHas('jugadores', ['id' => 2, 'numero_camiseta' => 7]);
+        $this->assertSame(65, Jugador::findOrFail(2)->club()?->id);
+        // Una liga trae los planteles completos: Saka sale del plantel del Arsenal.
+        $this->assertDatabaseMissing('equipo_jugador', ['equipo_id' => 57, 'jugador_id' => 2]);
         $this->assertSame(3, Jugador::count());
     }
 
@@ -149,16 +153,59 @@ class ImportarLigaTest extends TestCase
         ]));
         $this->importar()->ejecutar('WC');
 
-        // El club manda: Saka sigue en el Arsenal, con su número del club.
-        $this->assertDatabaseHas('jugadores', ['id' => 2, 'equipo_id' => 57, 'numero_camiseta' => null]);
-        // Quien aún no tiene club guardado sí queda en su selección.
-        $this->assertDatabaseHas('jugadores', ['id' => 90, 'equipo_id' => 770]);
+        // Saka sigue en el Arsenal, con su número del club.
+        $this->assertDatabaseHas('jugadores', ['id' => 2, 'numero_camiseta' => null]);
+        $this->assertSame(57, Jugador::findOrFail(2)->club()?->id);
+        // Quien llega primero por su selección no tiene club conocido y está en el plantel de su selección.
+        $this->assertNull(Jugador::findOrFail(90)->club());
+        $this->assertDatabaseHas('equipo_jugador', ['equipo_id' => 770, 'jugador_id' => 90]);
         $this->assertDatabaseHas('liga_equipo', ['liga_id' => 2000, 'equipo_id' => 770]);
 
         // Al volver a importar la liga de clubes, el jugador nuevo de la selección no se toca
         // y los del club siguen en su club.
         $this->importar()->ejecutar('PL');
-        $this->assertDatabaseHas('jugadores', ['id' => 2, 'equipo_id' => 57]);
+        $this->assertSame(57, Jugador::findOrFail(2)->club()?->id);
+        $this->assertDatabaseHas('equipo_jugador', ['equipo_id' => 770, 'jugador_id' => 2]);
+    }
+
+    #[Test]
+    public function cada_equipo_se_guarda_como_club_o_como_seleccion(): void
+    {
+        $this->proveedor->conPlanteles($this->premierLeague());
+        $this->importar()->ejecutar('PL');
+        $this->proveedor->conPlanteles(new PlantelesLiga(Proveedor::liga(2000, 'WC'), '2026', [
+            Proveedor::equipo(770, 'England', [Proveedor::jugador(2, 'Bukayo Saka', 'Offence', 7)]),
+        ]));
+        $this->importar()->ejecutar('WC');
+
+        $this->assertDatabaseHas('equipos', ['id' => 57, 'tipo' => 'club']);
+        $this->assertDatabaseHas('equipos', ['id' => 770, 'tipo' => 'seleccion']);
+        // El club actual de un jugador siempre es un club.
+        $this->assertSame('club', Jugador::findOrFail(2)->club()?->tipo);
+    }
+
+    #[Test]
+    public function un_jugador_pertenece_a_su_club_y_a_su_seleccion(): void
+    {
+        $this->proveedor->conPlanteles($this->premierLeague());
+        $this->importar()->ejecutar('PL');
+        $this->proveedor->conPlanteles(new PlantelesLiga(Proveedor::liga(2000, 'WC'), '2026', [
+            Proveedor::equipo(770, 'England', [Proveedor::jugador(2, 'Bukayo Saka', 'Offence', 7)]),
+        ]));
+        $this->importar()->ejecutar('WC');
+
+        // Un solo registro del jugador, con su club…
+        $this->assertSame(1, Jugador::whereKey(2)->count());
+        $this->assertSame(57, Jugador::findOrFail(2)->club()?->id);
+        // …y en el plantel de los dos equipos.
+        $this->assertDatabaseHas('equipo_jugador', ['equipo_id' => 57, 'jugador_id' => 2]);
+        $this->assertDatabaseHas('equipo_jugador', ['equipo_id' => 770, 'jugador_id' => 2]);
+        $this->assertEqualsCanonicalizing([57, 770], Jugador::findOrFail(2)->equipos()->pluck('equipos.id')->all());
+        $this->assertSame(['Bukayo Saka'], Equipo::findOrFail(770)->jugadores()->pluck('nombre')->all());
+
+        // Importar de nuevo no duplica las pertenencias.
+        $this->importar()->ejecutar('WC');
+        $this->assertSame(2, Jugador::findOrFail(2)->equipos()->count());
     }
 
     #[Test]
@@ -173,7 +220,40 @@ class ImportarLigaTest extends TestCase
         $this->importar()->ejecutar('PL');
 
         $this->assertSame(1, Jugador::count());
-        $this->assertDatabaseHas('jugadores', ['id' => 1, 'equipo_id' => 65, 'numero_camiseta' => 1]);
+        $this->assertDatabaseHas('jugadores', ['id' => 1, 'numero_camiseta' => 1]);
+        $this->assertDatabaseHas('equipo_jugador', ['equipo_id' => 57, 'jugador_id' => 1]);
+        $this->assertDatabaseHas('equipo_jugador', ['equipo_id' => 65, 'jugador_id' => 1]);
+    }
+
+    #[Test]
+    public function una_copa_solo_agrega_jugadores_y_no_vacia_planteles(): void
+    {
+        $this->proveedor->conPlanteles($this->premierLeague());
+        $this->importar()->ejecutar('PL');
+
+        // La Champions envía planteles incompletos: no puede sacar a nadie del plantel de su club.
+        $this->proveedor->conPlanteles(new PlantelesLiga(Proveedor::liga(2001, 'CL', tipo: 'CUP'), '2026', [
+            Proveedor::equipo(57, 'Arsenal FC', [Proveedor::jugador(1, 'David Raya', 'Goalkeeper', 22)]),
+        ]));
+        $this->importar()->ejecutar('CL');
+
+        $this->assertDatabaseHas('equipo_jugador', ['equipo_id' => 57, 'jugador_id' => 2]);
+        $this->assertSame(57, Jugador::findOrFail(2)->club()?->id);
+    }
+
+    #[Test]
+    public function el_club_actual_es_el_de_la_ultima_liga_importada_que_lo_trae(): void
+    {
+        // Saka se va a préstamo a otro club de otra liga: su club actual pasa a ser ese.
+        $this->proveedor->conPlanteles($this->premierLeague());
+        $this->importar()->ejecutar('PL');
+        $this->travel(1)->minutes();
+        $this->proveedor->conPlanteles(new PlantelesLiga(Proveedor::liga(2014, 'PD'), '2026', [
+            Proveedor::equipo(86, 'Real Madrid CF', [Proveedor::jugador(2, 'Bukayo Saka', 'Offence', 11)]),
+        ]));
+        $this->importar()->ejecutar('PD');
+
+        $this->assertSame(86, Jugador::findOrFail(2)->club()?->id);
     }
 
     private function importar(): ImportarLiga

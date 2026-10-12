@@ -196,13 +196,19 @@ class EndpointsFutbolTest extends TestCase
         $this->getJson('/team?buscar=arsenal')->assertOk()->assertJsonCount(1, 'data');
         $this->getJson("/team?liga_id={$liga->id}")->assertOk()->assertJsonPath('data.0.nombre', 'Arsenal FC');
         $this->assertErrorApi($this->getJson('/team?por_pagina=1000'), 422, 'validacion_fallida');
+
+        Equipo::factory()->create(['nombre' => 'England', 'tipo' => 'seleccion']);
+        $this->getJson('/team?tipo=seleccion')->assertOk()->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.nombre', 'England')->assertJsonPath('data.0.tipo', 'seleccion');
+        $this->getJson('/team?tipo=club')->assertOk()->assertJsonPath('meta.total', 4);
+        $this->assertErrorApi($this->getJson('/team?tipo=otro'), 422, 'validacion_fallida');
     }
 
     #[Test]
     public function el_detalle_de_un_equipo_incluye_sus_jugadores_y_ligas(): void
     {
         $equipo = Equipo::factory()->create(['nombre' => 'Arsenal FC']);
-        Jugador::factory()->for($equipo)->create(['nombre' => 'David Raya', 'posicion' => 'Goalkeeper', 'numero_camiseta' => 22]);
+        Jugador::factory()->hasAttached($equipo, [], 'equipos')->create(['nombre' => 'David Raya', 'posicion' => 'Goalkeeper', 'numero_camiseta' => 22]);
         $equipo->ligas()->attach(Liga::factory()->create(['codigo' => 'PL']), ['temporada' => '2026']);
 
         $this->getJson("/team/{$equipo->id}")
@@ -227,8 +233,8 @@ class EndpointsFutbolTest extends TestCase
     public function los_jugadores_guardados_se_filtran_y_ordenan(): void
     {
         $equipo = Equipo::factory()->create();
-        Jugador::factory()->for($equipo)->create(['nombre' => 'Zack Keeper', 'posicion' => 'Goalkeeper']);
-        Jugador::factory()->for($equipo)->create(['nombre' => 'Adam Striker', 'posicion' => 'Offence']);
+        Jugador::factory()->hasAttached($equipo, [], 'equipos')->create(['nombre' => 'Zack Keeper', 'posicion' => 'Goalkeeper']);
+        Jugador::factory()->hasAttached($equipo, [], 'equipos')->create(['nombre' => 'Adam Striker', 'posicion' => 'Offence']);
         Jugador::factory()->create(['nombre' => 'Other Keeper', 'posicion' => 'Goalkeeper']);
 
         $this->getJson('/players')

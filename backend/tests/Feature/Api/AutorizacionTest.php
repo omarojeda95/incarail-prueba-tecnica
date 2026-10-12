@@ -27,7 +27,7 @@ class AutorizacionTest extends TestCase
         $liga = Liga::factory()->importada()->create(['id' => 2021, 'codigo' => 'PL']);
         $equipo = Equipo::factory()->create(['id' => 57]);
         $liga->equipos()->attach($equipo);
-        Jugador::factory()->for($equipo)->create(['id' => 7]);
+        Jugador::factory()->hasAttached($equipo, [], 'equipos')->create(['id' => 7]);
         SincronizarCatalogoLigas::marcarSincronizado();
     }
 

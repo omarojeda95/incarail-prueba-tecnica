@@ -69,10 +69,10 @@ final class ProveedorFutbolEnMemoria implements ProveedorDatosFutbol
         }
     }
 
-    public static function liga(int $id = 2021, string $codigo = 'PL', string $plan = 'TIER_ONE'): DatosLiga
+    public static function liga(int $id = 2021, string $codigo = 'PL', string $plan = 'TIER_ONE', string $tipo = 'LEAGUE'): DatosLiga
     {
         return new DatosLiga(
-            id: $id, nombre: "Liga {$codigo}", codigo: $codigo, tipo: 'LEAGUE', emblema: null, plan: $plan,
+            id: $id, nombre: "Liga {$codigo}", codigo: $codigo, tipo: $tipo, emblema: null, plan: $plan,
             areaNombre: 'England', areaCodigo: 'ENG', areaBandera: null,
             temporadaInicio: new DateTimeImmutable('2026-08-15'), temporadaFin: new DateTimeImmutable('2027-05-23'),
             jornadaActual: 7, actualizadoEn: new DateTimeImmutable('2026-10-01'),

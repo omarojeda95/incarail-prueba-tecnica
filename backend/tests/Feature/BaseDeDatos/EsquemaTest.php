@@ -7,23 +7,25 @@ use App\Dominio\Futbol\Datos\DatosEquipo;
 use App\Dominio\Futbol\Datos\PlantelesLiga;
 use App\Dominio\Futbol\Puertos\ProveedorDatosFutbol;
 use App\Models\Equipo;
+use Illuminate\Database\QueryException;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\Dobles\ProveedorFutbolEnMemoria as Proveedor;
+use Tests\Soporte\InteractuaConAcceso;
 use Tests\TestCase;
 
 /** Reglas que revisaría un DBA. Corren sobre SQLite y sobre PostgreSQL (CI). */
 class EsquemaTest extends TestCase
 {
-    use RefreshDatabase;
+    use InteractuaConAcceso, RefreshDatabase;
 
     #[Test]
     public function toda_clave_foranea_de_las_tablas_de_futbol_tiene_indice(): void
     {
-        foreach (['jugadores', 'liga_equipo', 'importaciones_liga'] as $tabla) {
+        foreach (['jugadores', 'liga_equipo', 'equipo_jugador', 'importaciones_liga'] as $tabla) {
             $columnasIniciales = collect(Schema::getIndexes($tabla))->map(fn (array $indice) => $indice['columns'][0]);
 
             foreach (Schema::getForeignKeys($tabla) as $claveForanea) {
@@ -31,6 +33,33 @@ class EsquemaTest extends TestCase
                 $this->assertContains($columna, $columnasIniciales, "{$tabla}.{$columna} es clave foránea y no tiene índice.");
             }
         }
+    }
+
+    #[Test]
+    public function el_tipo_de_equipo_solo_admite_club_o_seleccion(): void
+    {
+        $this->assertSame('club', Equipo::factory()->create()->refresh()->tipo);
+        $this->assertSame('seleccion', Equipo::factory()->create(['tipo' => 'seleccion'])->refresh()->tipo);
+
+        // La base rechaza cualquier otro valor (restricción CHECK).
+        $this->expectException(QueryException::class);
+        Equipo::factory()->create(['tipo' => 'otro']);
+    }
+
+    #[Test]
+    public function borrar_un_usuario_no_deja_tokens_ni_roles_huerfanos(): void
+    {
+        // La API desactiva usuarios en vez de borrarlos, pero la base igual tiene que quedar consistente.
+        $this->prepararAcceso();
+        $usuario = $this->usuarioConRol('analista');
+        $usuario->createToken('spa');
+
+        $usuario->delete();
+
+        // Tokens: clave foránea con borrado en cascada. Roles: relación polimórfica de spatie (sin FK
+        // posible), que el paquete limpia al borrar el modelo.
+        $this->assertDatabaseMissing('oauth_access_tokens', ['user_id' => $usuario->id]);
+        $this->assertDatabaseMissing('model_has_roles', ['model_id' => $usuario->id]);
     }
 
     #[Test]
