@@ -1,0 +1,729 @@
+{
+  "info": {
+    "name": "Inca Rail · Plataforma de fútbol",
+    "description": "API de la prueba técnica. Primero ejecuta «Iniciar sesión (admin)»: guarda el token en la variable {{token}} y el resto de las peticiones lo usa. Cambia {{baseUrl}} si levantaste la API en otro puerto.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8001"
+    },
+    {
+      "key": "token",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Sesión",
+      "item": [
+        {
+          "name": "Iniciar sesión (admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/iniciar-sesion",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "iniciar-sesion"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo\": \"admin@incarail.test\",\n  \"contrasena\": \"password\"\n}"
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const cuerpo = pm.response.json();",
+                  "if (cuerpo.token_acceso) { pm.collectionVariables.set('token', cuerpo.token_acceso); }",
+                  "pm.test('devuelve un token', () => pm.expect(cuerpo.token_acceso).to.be.a('string'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Iniciar sesión (consulta, solo lectura)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/iniciar-sesion",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "iniciar-sesion"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo\": \"consulta@incarail.test\",\n  \"contrasena\": \"password\"\n}"
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "Útil para ver los 403 de las rutas de administración."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const cuerpo = pm.response.json();",
+                  "if (cuerpo.token_acceso) { pm.collectionVariables.set('token', cuerpo.token_acceso); }",
+                  "pm.test('devuelve un token', () => pm.expect(cuerpo.token_acceso).to.be.a('string'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Sesión actual (usuario y reglas CASL)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/sesion",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "sesion"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Cerrar sesión (revoca el token)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/cerrar-sesion",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "cerrar-sesion"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Fútbol (los 5 endpoints del enunciado)",
+      "item": [
+        {
+          "name": "Ligas",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/competitions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "competitions"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Ligas disponibles en el plan gratuito",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/competitions?disponibles=1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "competitions"
+              ],
+              "query": [
+                {
+                  "key": "disponibles",
+                  "value": "1"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Detalle de una liga (la importa si hace falta)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/competitions/PL",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "competitions",
+                "PL"
+              ]
+            },
+            "description": "La primera vez hace 1 petición a football-data y guarda equipos y jugadores; las siguientes 12 h responde desde la base (meta.fuente)."
+          }
+        },
+        {
+          "name": "Equipos guardados",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/team",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "team"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Selecciones guardadas",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/team?tipo=seleccion",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "team"
+              ],
+              "query": [
+                {
+                  "key": "tipo",
+                  "value": "seleccion"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Detalle de un equipo (Arsenal)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/team/57",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "team",
+                "57"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Jugadores guardados",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/players",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "players"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Arqueros",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/players?posicion=Goalkeeper&orden=nombre",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "players"
+              ],
+              "query": [
+                {
+                  "key": "posicion",
+                  "value": "Goalkeeper"
+                },
+                {
+                  "key": "orden",
+                  "value": "nombre"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Forzar la actualización de una liga (en cola)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/competitions/PL/importar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "competitions",
+                "PL",
+                "importar"
+              ]
+            },
+            "description": "Requiere el permiso ligas.importar (admin o analista). Responde 202."
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Administración",
+      "item": [
+        {
+          "name": "Usuarios",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/usuarios",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "usuarios"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Crear usuario",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/usuarios",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "usuarios"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Usuario Nuevo\",\n  \"correo\": \"nuevo@incarail.test\",\n  \"contrasena\": \"secreto123\",\n  \"roles\": [\n    \"consulta\"\n  ]\n}"
+            }
+          }
+        },
+        {
+          "name": "Editar usuario",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/usuarios/4",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "usuarios",
+                "4"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Usuario Editado\",\n  \"roles\": [\n    \"analista\"\n  ]\n}"
+            }
+          }
+        },
+        {
+          "name": "Desactivar usuario",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/usuarios/4/desactivar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "usuarios",
+                "4",
+                "desactivar"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Activar usuario",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/usuarios/4/activar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "usuarios",
+                "4",
+                "activar"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Roles",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/roles",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "roles"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Crear rol",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/roles",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "roles"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"editor\",\n  \"permisos\": [\n    \"ligas.ver\",\n    \"equipos.ver\"\n  ]\n}"
+            }
+          }
+        },
+        {
+          "name": "Catálogo de permisos (con su equivalente CASL)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/permisos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "permisos"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Errores (mismo formato JSON)",
+      "item": [
+        {
+          "name": "401 · sin token",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/team",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "team"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "401 · credenciales incorrectas",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/iniciar-sesion",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "iniciar-sesion"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo\": \"admin@incarail.test\",\n  \"contrasena\": \"incorrecta\"\n}"
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "404 · equipo inexistente",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/team/999999",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "team",
+                "999999"
+              ]
+            }
+          }
+        },
+        {
+          "name": "422 · filtro inválido",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/team?tipo=otro",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "team"
+              ],
+              "query": [
+                {
+                  "key": "tipo",
+                  "value": "otro"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "403 · liga fuera del plan gratuito (Copa Libertadores)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/competitions/CLI",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "competitions",
+                "CLI"
+              ]
+            },
+            "description": "CLI es TIER_FOUR: se rechaza sin gastar peticiones a football-data."
+          }
+        }
+      ]
+    }
+  ]
+}

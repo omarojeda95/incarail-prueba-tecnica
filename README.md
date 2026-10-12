@@ -8,7 +8,7 @@ roles y permisos.
 - **Backend:** Laravel 13, PHP 8.5, Passport, spatie/laravel-permission, PostgreSQL 17, Redis 7.
 - **Frontend:** Vue 3, TypeScript, Vue Router, Pinia, Vuetify, CASL.
 - **Infraestructura:** Docker Compose con nginx, PHP-FPM, worker de colas, scheduler, PostgreSQL y Redis.
-- **Calidad:** 95 pruebas de backend y 10 de frontend, Pint, ESLint y GitHub Actions.
+- **Calidad:** 96 pruebas de backend y 21 de frontend, Pint, ESLint y GitHub Actions.
 
 ## 1. Cómo levantarlo
 
@@ -96,6 +96,11 @@ Las cinco rutas del enunciado van sin el prefijo `/api`, tal como están escrita
 | `POST /competitions/{id}/importar` | `ligas.importar` | Encola una actualización y responde `202` |
 | `/usuarios`, `/roles`, `/permisos` | `usuarios.*`, `roles.*` | Administración de usuarios, roles y permisos |
 
+Para probarla sin escribir nada, importa en Postman
+[`docs/incarail.postman_collection.json`](docs/incarail.postman_collection.json) y ejecuta «Iniciar sesión (admin)»:
+guarda el token y las demás peticiones lo usan. Trae los cinco endpoints, la administración y un ejemplo de cada
+error.
+
 Todos los errores tienen la misma forma. `codigo` es para el programa y `mensaje` para la persona:
 
 ```json
@@ -120,7 +125,8 @@ se nota y lo guardado se sigue viendo aunque football-data esté caído o sin cu
 - Importar una liga cuesta una sola petición: `/competitions/{id}/teams` trae la liga, sus equipos y sus planteles.
 - Antes de cada petición, `ClienteFootballData` pide un cupo a un contador en Redis
   (`PresupuestoVentanaDeslizante`). Está en Redis porque la API, el worker y el scheduler son procesos distintos y
-  comparten el mismo cupo; un lock evita que dos lo tomen a la vez. Cuenta las peticiones de los últimos 60
+  comparten el mismo cupo; un lock evita que dos lo tomen a la vez (y si otro proceso lo retiene demasiado, se trata
+  como falta de cupo, no como un error). Cuenta las peticiones de los últimos 60
   segundos y no por minuto de reloj, porque así no pueden salir 10 a las 12:00:59 y otras 10 a las 12:01:00.
 - Si football-data avisa que no queda cupo (por sus cabeceras o con un 429), el contador se bloquea hasta la hora
   que ellos indican.
@@ -148,10 +154,12 @@ tres opciones:
   mucho código que no aporta.
 - **Hexagonal en el borde (la elegida):** el caso de uso depende de un puerto (`ProveedorDatosFutbol`).
   `ClienteFootballData` lo implementa con HTTP y, en las pruebas, `ProveedorFutbolEnMemoria` lo reemplaza sin
-  tocar el caso de uso. No puse repositorios delante de Eloquent porque ya es la abstracción de la base.
+  tocar el caso de uso. Encolar una importación también pasa por un puerto (`ColaDeImportaciones`), así que el
+  dominio no conoce Laravel. No puse repositorios delante de Eloquent porque ya es la abstracción de la base.
 
 El código está en `app/Dominio` (puerto, DTOs, excepciones y evento), `app/Aplicacion` (casos de uso) y
-`app/Infraestructura` (el cliente de football-data y el contador). Los controladores tienen una a tres líneas: la
+`app/Infraestructura` (el cliente de football-data, el contador y la cola). `ImportarLiga` solo orquesta: pide los
+datos, guarda todo en una transacción con `GuardarPlanteles` y publica el evento. Los controladores tienen una a tres líneas: la
 validación va en Form Requests, la salida en Resources y todos los errores pasan por `RenderizadorErroresApi`.
 
 Los comandos (`ImportarLiga`, gestión de usuarios y roles) están separados de las consultas (`DetalleLiga`,
@@ -176,8 +184,9 @@ auditoría y limpiar una caché; agregar otra reacción no toca el caso de uso.
   migración.
 
 Elegí PostgreSQL por la búsqueda: la SPA busca por partes del nombre y eso solo se acelera con índices trigram
-(`pg_trgm`), que MySQL no tiene. Con 150.000 jugadores de prueba, la búsqueda bajó de unos 140 ms a 7 ms, y el
-detalle de una liga de 650 a 9 ms tras indexar las claves foráneas. Los textos del proveedor van en `text`, porque
+(`pg_trgm`), que MySQL no tiene. Lo medí a mano con `EXPLAIN ANALYZE` sobre datos sintéticos (150.000 jugadores):
+la búsqueda bajó de unos 140 ms a 7 ms, y el detalle de una liga de 650 a 9 ms tras indexar las claves foráneas.
+Las pruebas de la base verifican que esos índices existan. Los textos del proveedor van en `text`, porque
 una URL de más de 255 caracteres hacía fallar la importación.
 
 Lo propio está en español (tablas, clases, permisos, mensajes). En inglés queda lo que no depende de mí: las
@@ -248,7 +257,8 @@ cd frontend && npm test                      # frontend
 Hay pruebas unitarias del contador y del cliente de football-data; de integración de la API con la base,
 incluidos los permisos de cada rol en cada ruta; de aceptación con flujos completos (el analista importa una liga
 y sigue trabajando con football-data caído; el admin crea un usuario que solo ve lo permitido); y de reglas de la
-base. Corren en SQLite y, en la CI, también en PostgreSQL. Las llamadas a football-data se simulan, así que no
+base. En el frontend hay pruebas del guardia del router (sesión y permisos), de los componentes de error y de
+estados de carga, de las reglas CASL y del manejo de respuestas fuera de orden. Corren en SQLite y, en la CI, también en PostgreSQL. Las llamadas a football-data se simulan, así que no
 gastan tu cupo.
 
 Varias piezas se hicieron con TDD: en el historial, los commits `test: … (red)` van antes de sus
@@ -293,7 +303,7 @@ backend/        API Laravel
   config/acl.php, config/futbol.php                   permisos y configuración de football-data
   database/, tests/                                   migraciones y seeders · pruebas
 frontend/       SPA Vue 3
-docs/           diagramas (PNG) y diagramas.drawio
+docs/           diagramas (PNG), diagramas.drawio y la colección de Postman
 docker/         imágenes de PHP-FPM y nginx
 compose.yml     stack completo
 ```
