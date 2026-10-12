@@ -3,6 +3,7 @@
 namespace App\Infraestructura\FootballData;
 
 use App\Dominio\Futbol\Excepciones\LimiteDePeticionesAlcanzado;
+use Illuminate\Contracts\Cache\LockTimeoutException;
 use Illuminate\Contracts\Cache\Repository;
 
 /**
@@ -21,20 +22,30 @@ final class PresupuestoVentanaDeslizante implements PresupuestoPeticiones
         private readonly int $maximo,
         private readonly int $ventanaSegundos,
         private readonly string $clave = 'football-data:presupuesto',
+        private readonly int $esperaLockSegundos = 5,
     ) {}
 
     public function reservar(): void
     {
-        $this->cache->lock("{$this->clave}:lock", 5)->block(5, function () {
-            $espera = $this->calcularEspera($registros = $this->registrosRecientes());
+        try {
+            $this->cache->lock("{$this->clave}:lock", 5)->block($this->esperaLockSegundos, fn () => $this->tomarCupo());
+        } catch (LockTimeoutException) {
+            // Otro proceso tiene el contador demasiado tiempo: se trata como falta de cupo
+            // (la importación va a la cola), no como un error del servidor.
+            throw new LimiteDePeticionesAlcanzado(max(1, $this->esperaLockSegundos));
+        }
+    }
 
-            if ($espera > 0) {
-                throw new LimiteDePeticionesAlcanzado($espera);
-            }
+    private function tomarCupo(): void
+    {
+        $espera = $this->calcularEspera($registros = $this->registrosRecientes());
 
-            $registros[] = now()->getTimestampMs();
-            $this->cache->put("{$this->clave}:registros", $registros, $this->ventanaSegundos + 5);
-        });
+        if ($espera > 0) {
+            throw new LimiteDePeticionesAlcanzado($espera);
+        }
+
+        $registros[] = now()->getTimestampMs();
+        $this->cache->put("{$this->clave}:registros", $registros, $this->ventanaSegundos + 5);
     }
 
     public function restantes(): int

@@ -28,6 +28,21 @@ class PresupuestoVentanaDeslizanteTest extends TestCase
     }
 
     #[Test]
+    public function si_otro_proceso_tiene_el_contador_se_responde_sin_cupo_y_no_con_un_error(): void
+    {
+        $cache = new Repository(new ArrayStore);
+        $presupuesto = new PresupuestoVentanaDeslizante($cache, maximo: 10, ventanaSegundos: 60, esperaLockSegundos: 0);
+        $cache->lock('football-data:presupuesto:lock', 10)->get();
+
+        try {
+            $presupuesto->reservar();
+            $this->fail('Debía responder sin cupo.');
+        } catch (LimiteDePeticionesAlcanzado $e) {
+            $this->assertGreaterThan(0, $e->reintentarEn);
+        }
+    }
+
+    #[Test]
     public function permite_hasta_el_maximo_de_peticiones_por_ventana(): void
     {
         $this->gastar(10);
