@@ -1,14 +1,20 @@
 # Inca Rail · Plataforma de fútbol
 
-Prueba técnica Senior Full Stack. Es una API en Laravel 13 (PHP 8.5) con Passport y roles y permisos, que
-consume [football-data.org](https://www.football-data.org) y guarda una copia propia en PostgreSQL con Eloquent.
-La acompaña una SPA en Vue 3 para iniciar sesión, consultar ligas, equipos y jugadores, y administrar usuarios,
-roles y permisos.
+Prueba técnica Senior Full Stack.
 
-- **Backend:** Laravel 13, PHP 8.5, Passport, spatie/laravel-permission, PostgreSQL 17, Redis 7.
-- **Frontend:** Vue 3, TypeScript, Vue Router, Pinia, Vuetify, CASL.
-- **Infraestructura:** Docker Compose con nginx, PHP-FPM, worker de colas, scheduler, PostgreSQL y Redis.
-- **Calidad:** 96 pruebas de backend y 21 de frontend, Pint, ESLint y GitHub Actions.
+Desarrollé un proyecto en Laravel 13 y Vue 3 que consulta [football-data.org](https://www.football-data.org) para
+obtener ligas, equipos y jugadores. Lo que se consulta se registra en nuestra propia base de datos, para no generar
+muchas consultas a la API de football-data, que en el plan gratuito solo permite 10 por minuto. Es la misma forma
+en que manejo la información en mi trabajo día a día.
+
+Lo que más me costó fueron los schedulers y la cola para respetar ese límite, y lo que más disfruté fue el
+desarrollo en Laravel. Puse especial cuidado en que las tablas de la base de datos estén bien relacionadas, en la
+estructura de la API y sobre todo en las rutas.
+
+Backend en Laravel 13 (PHP 8.5) con Passport, spatie/laravel-permission, PostgreSQL 17 y Redis 7. Frontend en
+Vue 3 con TypeScript, Vue Router, Pinia, Vuetify y CASL. Todo se levanta con Docker Compose (nginx, PHP-FPM, worker
+de colas, scheduler, PostgreSQL y Redis), porque desarrollo en un servidor Linux. Tiene 96 pruebas de backend y 21
+de frontend, y GitHub Actions las corre en cada push.
 
 ## 1. Cómo levantarlo
 
@@ -26,8 +32,8 @@ La primera vez tarda unos minutos. Cuando `docker compose ps` muestre `app` como
 - SPA: <http://localhost:8081>
 - API: <http://localhost:8001> (salud en `/up`)
 
-No hay pasos ocultos: al arrancar, el contenedor `app` corre las migraciones, genera las llaves de Passport y
-carga los roles, permisos y usuarios de prueba (`php artisan app:instalar`, que se puede repetir sin problema).
+Al arrancar, el contenedor `app` corre las migraciones, genera las llaves de Passport y
+carga los roles, permisos y usuarios de prueba (`php artisan app:instalar`, que se puede correr las veces que haga falta).
 Si los puertos están ocupados, cámbialos en `.env` (`SPA_PORT`, `API_PORT`).
 
 ```bash
@@ -115,8 +121,9 @@ o de football-data (con `Retry-After`), 502 error de football-data y 503 footbal
 
 ## 3. El límite de 10 peticiones por minuto
 
-La idea es que la API responda desde su propia base y que football-data solo la alimente. Así el límite casi no
-se nota y lo guardado se sigue viendo aunque football-data esté caído o sin cupo.
+Cuando leí lo del límite, lo primero que pensé fue cómo hacerlo sin romper la API por exceso de llamadas. Lo
+resolví haciendo que la API responda desde su propia base y que football-data solo la alimente. Así el límite casi
+no se nota, y lo guardado se sigue viendo aunque football-data esté caído o sin cupo.
 
 ![Decisión del límite de peticiones](docs/limite-peticiones.png)
 
@@ -136,23 +143,39 @@ se nota y lo guardado se sigue viendo aunque football-data esté caído o sin cu
 - Las ligas que no están en el plan gratuito se rechazan sin gastar una petición.
 - El scheduler actualiza el catálogo una vez al día y, cada hora, las ligas vencidas.
 
-Lo probé con una prueba que abre 11 ligas seguidas: salen exactamente 10 peticiones y la 11.ª responde 429 y
-queda en cola. Descarté solo cachear las respuestas (no frena una ráfaga de ligas distintas), poner `sleep()`
+Hay una prueba automática que abre 11 ligas seguidas y verifica que salen exactamente 10 peticiones, y que la
+11.ª responde 429 y queda en cola. Descarté solo cachear las respuestas (no frena una ráfaga de ligas distintas), poner `sleep()`
 entre llamadas (el usuario esperaría hasta un minuto) e importar todo con un cron (gasta cupo en ligas que nadie
 pidió, y el enunciado dice que la liga se guarda al consultarla).
 
-## 4. Cómo lo resolví
+## 4. Lo que encontré probando
+
+Cuando terminé, hice una prueba simple trayendo información y, de curioso, entré al Mundial para ver los equipos.
+Al regresar al Bayern no estaban todos sus jugadores: Kane, Neuer y otros se habían "pasado" a su selección, porque
+cada jugador tenía un solo equipo. Eso me hizo revisar a fondo la relación entre equipos y jugadores. Ahora un
+jugador puede estar en el plantel de su club y en el de su selección (tabla `equipo_jugador`), y cada equipo está
+marcado como club o selección.
+
+También me dio curiosidad la Champions: casi todos los equipos llegaban sin jugadores, porque football-data no manda
+esos planteles. Eso me llevó a pensar en los traspasos y préstamos, y ahora, al importar una liga, el plantel de
+cada club se actualiza y sale el que ya no está.
+
+Además, football-data a veces manda a un jugador en dos equipos de la misma liga (por un traspaso o un
+préstamo), y eso hacía fallar la importación en PostgreSQL. Cada uno de estos casos lo corregí primero con una
+prueba que lo reproducía.
+
+## 5. Cómo lo resolví
 
 ### Arquitectura
 
-Usé arquitectura hexagonal solo en el borde con football-data, que es lo que de verdad cambia y falla. Comparé
-tres opciones:
+El enunciado proponía hexagonal o Clean Architecture y quise aplicar hexagonal, pero solo donde aporta: en el borde
+con football-data, que es lo que de verdad cambia y falla. Antes comparé las opciones:
 
-- **Capas simples de Laravel:** menos código, pero la integración y el límite quedaban mezclados con los
+- Con capas simples de Laravel había menos código, pero la integración y el límite quedaban mezclados con los
   controladores y eran difíciles de probar.
-- **Clean Architecture completa:** entidades, repositorios y mapeos propios para algo que es casi solo lectura;
-  mucho código que no aporta.
-- **Hexagonal en el borde (la elegida):** el caso de uso depende de un puerto (`ProveedorDatosFutbol`).
+- Clean Architecture completa pedía entidades, repositorios y mapeos propios para algo que es casi solo lectura.
+  Mucho código que no aporta.
+- Me quedé con hexagonal en el borde. El caso de uso depende de un puerto (`ProveedorDatosFutbol`).
   `ClienteFootballData` lo implementa con HTTP y, en las pruebas, `ProveedorFutbolEnMemoria` lo reemplaza sin
   tocar el caso de uso. Encolar una importación también pasa por un puerto (`ColaDeImportaciones`), así que el
   dominio no conoce Laravel. No puse repositorios delante de Eloquent porque ya es la abstracción de la base.
@@ -168,6 +191,8 @@ Los comandos (`ImportarLiga`, gestión de usuarios y roles) están separados de 
 auditoría y limpiar una caché; agregar otra reacción no toca el caso de uso.
 
 ### Datos
+
+Es la parte en la que más insistí: que las tablas estén bien relacionadas y que cada dato viva en un solo lugar.
 
 - Las claves primarias son los ids de football-data y cada importación es un `upsert` por id dentro de una
   transacción. Consultar la misma liga dos veces no duplica nada, y si algo falla no queda una liga a medias.
@@ -211,7 +236,7 @@ mensaje, y sin permiso muestra una página propia. Hay esqueletos de carga, esta
 filtros, paginación, la cuenta regresiva del límite y avisos de datos desactualizados, con componentes
 reutilizables como `EstadoAsincrono` y `AlertaError`.
 
-## 5. Diagramas
+## 6. Diagramas
 
 Están en [`docs/`](docs/) como PNG, y todos juntos en [`docs/diagramas.drawio`](docs/diagramas.drawio), un
 archivo de draw.io con una pestaña por diagrama. El del límite está en la sección 3.
@@ -228,7 +253,7 @@ es el camino del límite: pedir cupo y recién entonces llamar a football-data.
 
 ![Importación de una liga](docs/flujo-importacion.png)
 
-`GET /competitions/PL` de punta a punta: permisos, consulta local, cupo, llamada a football-data, guardado en una
+Lo que pasa con `GET /competitions/PL`, paso a paso: permisos, consulta local, cupo, llamada a football-data, guardado en una
 transacción y evento de auditoría. Si no hay cupo, el job queda en la cola.
 
 ### Autenticación y permisos
@@ -247,7 +272,7 @@ roles, permisos y tokens. `model_has_roles.model_id` no tiene clave foránea por
 el paquete borra esos roles junto con el usuario. No dibujé las tablas propias del framework (`cache`, `jobs`,
 `migrations`, el resto de `oauth_*`).
 
-## 6. Pruebas e integración continua
+## 7. Pruebas e integración continua
 
 ```bash
 docker compose exec app php artisan test     # backend
@@ -268,7 +293,7 @@ prueba que fallaba.
 La CI (`.github/workflows/ci.yml`) corre Pint y las pruebas del backend en SQLite y PostgreSQL, el lint, las
 pruebas y el build del frontend, y construye las imágenes de Docker.
 
-## 7. Supuestos
+## 8. Supuestos
 
 - Consultar una liga la importa para cualquier rol con `ligas.ver`, porque así lo pide el enunciado. El permiso
   `ligas.importar` sirve para forzar una actualización aunque los datos estén vigentes.
@@ -283,9 +308,11 @@ pruebas y el build del frontend, y construye las imágenes de Docker.
 - A veces un jugador viene en dos planteles de la misma liga; se guarda una vez y queda en los dos.
 - Solo las ligas del plan gratuito se pueden importar; las demás se listan deshabilitadas.
 
-## 8. Mejoras que haría
+## 9. Mejoras que haría
 
-Lo obligatorio del enunciado está hecho y probado. Para llevarlo a producción agregaría:
+Lo obligatorio del enunciado está hecho y probado. Con más tiempo, lo primero que haría es una aplicación móvil
+que use la misma API, y un registro de errores y de seguridad: logs de accesos y de los cambios en usuarios, roles y
+permisos. Además agregaría:
 
 - Pruebas end-to-end del navegador con Playwright.
 - Refresh tokens en una cookie `httpOnly`, en vez de guardar el token en `localStorage`.
@@ -294,7 +321,7 @@ Lo obligatorio del enunciado está hecho y probado. Para llevarlo a producción 
 - Métricas del contador de peticiones y de la cola (Horizon o Pulse).
 - Una imagen de producción sin dependencias de desarrollo, con HTTPS y los secretos fuera de `.env`.
 
-## 9. Estructura
+## 10. Estructura
 
 ```
 backend/        API Laravel
