@@ -1,4 +1,30 @@
+# Archivos que nunca se suben al repositorio.
+# backend/ y frontend/ tienen además su propio .gitignore (el estándar de Laravel y de Vite).
+
+# --- Secretos y configuración local ---------------------------------------
+# .env lleva el token de football-data y las credenciales: solo se versionan
+# las plantillas .env.example, que no tienen secretos.
 .env
+.env.*
+!.env.example
+
+# Llaves privadas (las de Passport se generan en cada instalación).
+*.key
+*.pem
+
+# --- Dependencias y builds (se instalan o generan al levantar el proyecto) --
+node_modules/
+vendor/
+frontend/dist/
+
+# --- Logs y cachés ---------------------------------------------------------
+*.log
+.phpunit.result.cache
+.phpunit.cache/
+coverage/
+
+# --- Editores y sistema operativo ------------------------------------------
 .idea/
 .vscode/
-*.log
+.DS_Store
+Thumbs.db

@@ -1,3 +1,8 @@
+# Variables locales: solo se versiona .env.example (sin secretos).
+.env
+.env.*
+!.env.example
+
 # Logs
 logs
 *.log

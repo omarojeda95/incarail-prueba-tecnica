@@ -1,12 +1,33 @@
+# Lo que no entra al contexto de construcción de las imágenes de Docker.
+
+# --- Secretos: nunca dentro de una imagen ----------------------------------
+# El token y las credenciales llegan al contenedor como variables de entorno
+# (compose.yml las toma del .env de la raíz), no copiados en la imagen.
+**/.env
+**/.env.*
+!**/.env.example
+**/*.key
+**/*.pem
+backend/storage/*.key
+
+# --- Dependencias: se instalan dentro de la imagen -------------------------
 **/node_modules
 **/vendor
-**/.env
+
+# --- Datos, logs y cachés locales ------------------------------------------
+backend/database/*.sqlite*
 backend/storage/logs/*
 backend/storage/framework/cache/data/*
 backend/storage/framework/sessions/*
 backend/storage/framework/views/*
-backend/storage/*.key
-backend/database/database.sqlite
+**/.phpunit.result.cache
+**/*.log
 frontend/dist
+
+# --- Lo que la imagen no necesita ------------------------------------------
 .git
+.github
 docs
+**/.DS_Store
+**/.idea
+**/.vscode
