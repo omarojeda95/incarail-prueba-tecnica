@@ -7,10 +7,8 @@ use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Cache;
 
-/** Consultas sobre los jugadores guardados. Nunca llaman a football-data. */
 final class ConsultasJugadores
 {
-    /** La olvida el listener OlvidarPosicionesJugadores cada vez que se importa una liga. */
     public const CLAVE_CACHE_POSICIONES = 'futbol:posiciones-jugadores';
 
     private const ORDENABLES = ['nombre', 'posicion', 'numero_camiseta', 'fecha_nacimiento', 'nacionalidad'];
@@ -39,12 +37,7 @@ final class ConsultasJugadores
         return Jugador::query()->with('equipos')->findOrFail($id);
     }
 
-    /**
-     * Posiciones distintas para el filtro. Un DISTINCT sobre todos los
-     * jugadores recorre la tabla, y la lista solo cambia al importar una liga.
-     *
-     * @return list<string>
-     */
+    /** En caché: el DISTINCT recorre toda la tabla y la lista solo cambia al importar una liga. */
     public function posiciones(): array
     {
         return Cache::rememberForever(self::CLAVE_CACHE_POSICIONES, fn () => Jugador::query()

@@ -19,7 +19,6 @@ class RefrescarLigasVencidasCommand extends Command
             ->where('equipos_sincronizados_en', '<', now()->subMinutes(config('futbol.vigencia.detalle_liga_minutos')))
             ->pluck('id');
 
-        // Los jobs se autorregulan con el presupuesto de peticiones compartido.
         $vencidas->each(fn (int $id) => $cola->encolar($id, 'programada'));
 
         $this->components->info("{$vencidas->count()} ligas encoladas para actualizar.");

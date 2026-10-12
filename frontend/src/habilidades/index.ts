@@ -5,11 +5,7 @@ export type Accion = 'ver' | 'importar' | 'crear' | 'editar' | 'desactivar' | 'g
 export type Sujeto = 'Liga' | 'Equipo' | 'Jugador' | 'Usuario' | 'Rol' | 'all'
 export type HabilidadesApp = MongoAbility<[Accion, Sujeto]>
 
-/**
- * Una sola instancia de habilidades para toda la SPA. Sus reglas vienen de la
- * API al iniciar sesión (y al recargar, vía /auth/sesion); el servidor sigue
- * verificando cada permiso.
- */
+/** Las reglas vienen de la API; el servidor igual verifica cada permiso. */
 export const habilidades: HabilidadesApp = createMongoAbility<[Accion, Sujeto]>([])
 
 export function aplicarReglas(reglas: ReglaCasl[]): void {

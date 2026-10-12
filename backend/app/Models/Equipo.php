@@ -27,11 +27,7 @@ class Equipo extends Model
         return ['actualizado_proveedor_en' => 'datetime'];
     }
 
-    /**
-     * Plantel: todos los jugadores del equipo, incluidos los de una selección que tienen otro club.
-     *
-     * @return BelongsToMany<Jugador, $this>
-     */
+    /** @return BelongsToMany<Jugador, $this> */
     public function jugadores(): BelongsToMany
     {
         return $this->belongsToMany(Jugador::class, 'equipo_jugador')->using(EquipoJugador::class)->withTimestamps();

@@ -9,13 +9,6 @@ use App\Dominio\Futbol\Excepciones\ProveedorNoDisponible;
 use App\Dominio\Futbol\Puertos\ColaDeImportaciones;
 use App\Models\Liga;
 
-/**
- * Consulta: una liga con sus equipos. Caché de lectura sobre nuestra base:
- *  - importada y vigente          -> se responde local, sin petición externa
- *  - no importada o vencida       -> se importa ahora (1 petición a football-data)
- *  - sin cupo / proveedor caído   -> copia local desactualizada si existe, y la
- *                                    importación queda en cola hasta que haya cupo
- */
 final class DetalleLiga
 {
     public function __construct(

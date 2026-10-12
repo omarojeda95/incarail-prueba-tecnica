@@ -8,7 +8,6 @@ use App\Models\Usuario;
 use Illuminate\Support\Facades\Hash;
 use Laravel\Passport\PersonalAccessTokenResult;
 
-/** Inicio de sesión: verifica las credenciales y emite un token personal de Passport. */
 final class EmitirTokenAcceso
 {
     public function ejecutar(string $correo, string $contrasena): PersonalAccessTokenResult

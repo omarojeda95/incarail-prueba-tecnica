@@ -35,7 +35,6 @@ function limpiar<T extends object>(parametros: T): Partial<T> {
   ) as Partial<T>
 }
 
-// Las rutas /competitions, /team y /players son las que fija el enunciado.
 export const apiFutbol = {
   ligas: (filtros: FiltrosLigas = {}) =>
     cliente

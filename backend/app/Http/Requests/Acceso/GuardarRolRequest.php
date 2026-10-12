@@ -5,7 +5,6 @@ namespace App\Http\Requests\Acceso;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
-/** Sirve tanto para crear como para editar un rol. */
 class GuardarRolRequest extends FormRequest
 {
     public function rules(): array

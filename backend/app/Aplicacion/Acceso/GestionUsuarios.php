@@ -73,7 +73,6 @@ final class GestionUsuarios
 
         $usuario->forceFill(['activo' => false, 'desactivado_en' => now()])->save();
 
-        // Cierra en el acto todas las sesiones abiertas de ese usuario.
         $usuario->tokens()->update(['revoked' => true]);
 
         return $usuario;

@@ -4,7 +4,6 @@ namespace App\Dominio\Futbol\Excepciones;
 
 use Throwable;
 
-/** El proveedor está caído, no respondió, no está configurado o respondió algo inesperado. */
 final class ProveedorNoDisponible extends ExcepcionDatosFutbol
 {
     public function __construct(

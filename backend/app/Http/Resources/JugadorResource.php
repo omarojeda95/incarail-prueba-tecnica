@@ -19,7 +19,6 @@ class JugadorResource extends JsonResource
             'fecha_nacimiento' => $this->fecha_nacimiento?->toDateString(),
             'edad' => $this->fecha_nacimiento?->age,
             'nacionalidad' => $this->nacionalidad,
-            // Club actual (sale del plantel); null si solo se conoce su selección.
             'equipo' => $this->whenLoaded('equipos', fn () => ($club = $this->club()) ? [
                 'id' => $club->id,
                 'nombre' => $club->nombre,

@@ -4,7 +4,6 @@ namespace App\Infraestructura\FootballData;
 
 use App\Dominio\Futbol\Excepciones\LimiteDePeticionesAlcanzado;
 
-/** Cuántas peticiones podemos enviar todavía a football-data en este momento. */
 interface PresupuestoPeticiones
 {
     /**

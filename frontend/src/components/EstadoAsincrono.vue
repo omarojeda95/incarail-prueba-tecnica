@@ -2,10 +2,6 @@
 import type { ErrorApi } from '@/api/errores'
 import AlertaError from './AlertaError.vue'
 
-/**
- * Envuelve cualquier bloque de datos con los tres estados que toda pantalla
- * necesita: cargando (esqueleto), error (con reintento) y vacío (con una pista).
- */
 withDefaults(
   defineProps<{
     cargando: boolean

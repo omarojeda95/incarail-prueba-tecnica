@@ -28,11 +28,7 @@ use Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Throwable;
 
-/**
- * Todos los errores salen de la API con el mismo formato:
- *   { "error": { "estado": 404, "codigo": "no_encontrado", "mensaje": "...", "detalles": {...} } }
- * "codigo" es estable y está pensado para programas; "mensaje" para personas.
- */
+/** Todos los errores con el mismo formato: { error: { estado, codigo, mensaje, detalles } }. */
 final class RenderizadorErroresApi
 {
     private const MENSAJES_NO_ENCONTRADO = [
@@ -45,8 +41,7 @@ final class RenderizadorErroresApi
 
     public function __invoke(Throwable $e): Response
     {
-        // Laravel convierte ModelNotFound / Authorization en excepciones HTTP
-        // antes de llamarnos; la original queda como "previous".
+        // Laravel envuelve ModelNotFound en una excepción HTTP; la original queda como "previous".
         $original = $e->getPrevious() ?? $e;
 
         return match (true) {

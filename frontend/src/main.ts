@@ -18,8 +18,7 @@ app.use(router)
 app.use(vuetify)
 app.use(abilitiesPlugin, habilidades, { useGlobalProperties: true })
 
-// Cuando la API dice que la sesión ya no vale, se limpia y se vuelve al
-// inicio de sesión con un mensaje claro, en vez de dejar una pantalla rota.
+// Sesión vencida o cuenta desactivada: al login con un mensaje, no una pantalla rota.
 const terminarSesion = (mensaje: string) => {
   const sesion = useSesionStore()
   if (!sesion.token) return
@@ -34,8 +33,7 @@ const terminarSesion = (mensaje: string) => {
 ganchosSesion.alPerderSesion = terminarSesion
 ganchosSesion.alDesactivarCuenta = terminarSesion
 
-// Tras publicar una versión nueva, una pestaña abierta pide pantallas que ya no
-// existen: se recarga una vez en la ruta destino para tomar la versión nueva.
+// Tras un despliegue, una pestaña abierta pide archivos que ya no existen: recarga una vez.
 router.onError((error, destino) => {
   const esModuloPerdido = /dynamically imported module|Importing a module script failed/.test(
     String(error?.message),

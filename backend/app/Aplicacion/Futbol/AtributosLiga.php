@@ -5,7 +5,6 @@ namespace App\Aplicacion\Futbol;
 use App\Dominio\Futbol\Datos\DatosLiga;
 use DateTimeInterface;
 
-/** Traduce DatosLiga (independiente del proveedor) a las columnas de la tabla ligas. */
 final class AtributosLiga
 {
     /** @return array<string, mixed> */

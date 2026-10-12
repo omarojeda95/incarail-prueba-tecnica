@@ -2,7 +2,6 @@
 
 namespace App\Dominio\Futbol\Datos;
 
-/** Una liga con los equipos (y sus planteles) de una temporada: lo que necesita una importación. */
 final readonly class PlantelesLiga
 {
     /**

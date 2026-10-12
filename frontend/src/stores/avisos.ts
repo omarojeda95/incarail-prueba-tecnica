@@ -8,7 +8,6 @@ export interface Aviso {
   duracion: number
 }
 
-/** Cola global de avisos (snackbar). */
 export const useAvisosStore = defineStore('avisos', () => {
   const avisos = ref<Aviso[]>([])
   let siguienteId = 1

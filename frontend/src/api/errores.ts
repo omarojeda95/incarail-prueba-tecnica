@@ -1,7 +1,6 @@
 import { isAxiosError } from 'axios'
 import type { CuerpoError } from '@/tipos/api'
 
-/** Toda falla que la SPA puede mostrar, normalizada desde el formato de error de la API. */
 export class ErrorApi extends Error {
   constructor(
     public readonly estado: number,
@@ -23,7 +22,6 @@ export class ErrorApi extends Error {
     return this.codigo.startsWith('football_data_') && !this.esLimiteAlcanzado
   }
 
-  /** Primer mensaje de validación de un campo, para los formularios. */
   campo(nombre: string): string | undefined {
     return this.campos[nombre]?.[0]
   }

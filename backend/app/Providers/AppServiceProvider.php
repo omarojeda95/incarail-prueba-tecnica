@@ -18,9 +18,6 @@ use Laravel\Passport\Passport;
 
 class AppServiceProvider extends ServiceProvider
 {
-    /**
-     * Register any application services.
-     */
     public function register(): void
     {
         $this->app->singleton(PresupuestoPeticiones::class, fn () => new PresupuestoVentanaDeslizante(
@@ -41,9 +38,6 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(ColaDeImportaciones::class, ColaDeImportacionesLaravel::class);
     }
 
-    /**
-     * Bootstrap any application services.
-     */
     public function boot(): void
     {
         Passport::personalAccessTokensExpireIn(now()->addMinutes(config('passport.minutos_vida_token')));

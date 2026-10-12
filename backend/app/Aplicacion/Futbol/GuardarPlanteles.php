@@ -10,17 +10,7 @@ use App\Models\EquipoJugador;
 use App\Models\Jugador;
 use DateTimeInterface;
 
-/**
- * Guarda los equipos, los jugadores y los planteles (equipo_jugador) que trae una importación.
- *
- * Reglas:
- *  - Toda escritura es un upsert por el id de football-data, con las filas ordenadas por id para que
- *    dos importaciones simultáneas las bloqueen en el mismo orden (sin deadlocks).
- *  - Una competición de selecciones (Mundial, Eurocopa) guarda sus equipos como 'seleccion' y no pisa
- *    los datos de un jugador que ya trajo su club.
- *  - Una liga trae el plantel completo de cada club: quien ya no viene sale de ese plantel. Las copas
- *    solo agregan, porque football-data envía sus planteles incompletos o vacíos.
- */
+/** Filas ordenadas por id: dos importaciones simultáneas bloquean en el mismo orden (sin deadlocks). */
 final class GuardarPlanteles
 {
     public function ejecutar(PlantelesLiga $planteles): void

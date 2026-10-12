@@ -24,25 +24,18 @@ class Jugador extends Model
         return ['fecha_nacimiento' => 'date'];
     }
 
-    /**
-     * Todos los equipos en cuyo plantel está: su club y, si la hay, su selección.
-     *
-     * @return BelongsToMany<Equipo, $this>
-     */
+    /** @return BelongsToMany<Equipo, $this> */
     public function equipos(): BelongsToMany
     {
         return $this->belongsToMany(Equipo::class, 'equipo_jugador')->using(EquipoJugador::class)->withTimestamps();
     }
 
-    /**
-     * Club actual: el club de su plantel que trajo la importación más reciente (tras un
-     * traspaso o un préstamo, el nuevo club). Null si solo se conoce su selección.
-     */
+    /** El club de la importación más reciente (tras un traspaso, el nuevo); null si solo se conoce su selección. */
     public function club(): ?Equipo
     {
         $equipos = $this->relationLoaded('equipos') ? $this->equipos : $this->equipos()->get();
 
-        // Gana la importación más reciente; si empatan, el club de menor id (siempre el mismo).
+        // Si empatan, el de menor id, para que el resultado no dependa del orden de la consulta.
         return $equipos
             ->where('tipo', 'club')
             ->sortBy([

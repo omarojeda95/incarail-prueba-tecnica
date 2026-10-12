@@ -7,7 +7,6 @@ use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
-/** Un usuario desactivado pierde el acceso al instante, aunque su token siga vigente. */
 class ExigirUsuarioActivo
 {
     public function handle(Request $request, Closure $next): Response

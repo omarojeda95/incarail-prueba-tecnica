@@ -22,13 +22,10 @@ class Usuario extends Authenticatable implements OAuthenticatable
     /** @use HasFactory<UsuarioFactory> */
     use HasApiTokens, HasFactory, HasRoles, MarcasDeTiempo;
 
-    /** Roles y permisos se definen para el guard de Passport. */
     protected string $guard_name = 'api';
 
-    /** Columna de la contraseña para la autenticación de Laravel. */
     protected $authPasswordName = 'contrasena';
 
-    /** Sin "recordarme": la API usa tokens, no sesiones. */
     protected $rememberTokenName = '';
 
     protected function casts(): array
@@ -40,7 +37,6 @@ class Usuario extends Authenticatable implements OAuthenticatable
         ];
     }
 
-    /** El correo se guarda en minúsculas (la base también lo exige: usuarios_correo_minusculas_unique). */
     protected function correo(): Attribute
     {
         return Attribute::set(fn (string $valor) => strtolower(trim($valor)));

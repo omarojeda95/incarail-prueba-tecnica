@@ -5,10 +5,7 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
-/**
- * Un jugador puede estar en el plantel de varios equipos: su club y su selección.
- * jugadores.equipo_id sigue siendo su club actual; esta tabla guarda todas sus pertenencias.
- */
+/** Plantel: un jugador puede estar en su club y en su selección. */
 return new class extends Migration
 {
     public function up(): void

@@ -5,11 +5,7 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
-/**
- * La relación entre equipos y jugadores queda en un solo lugar: el plantel (equipo_jugador).
- * El club de un jugador es el equipo de tipo 'club' de su plantel, así que equipo_id sobra.
- * Los planteles ya se copiaron a equipo_jugador en create_equipo_jugador_table.
- */
+/** El club sale del plantel (equipo_jugador), así que equipo_id sobra. */
 return new class extends Migration
 {
     public function up(): void

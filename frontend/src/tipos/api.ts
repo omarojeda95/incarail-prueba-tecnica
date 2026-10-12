@@ -1,5 +1,3 @@
-// Formas que devuelve la API de Laravel (ver backend/app/Http/Resources).
-
 /** Paginación de Laravel (las claves son del framework). */
 export interface MetaPagina {
   current_page: number

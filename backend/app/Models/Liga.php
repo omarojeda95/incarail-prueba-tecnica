@@ -45,12 +45,7 @@ class Liga extends Model
             ->withTimestamps();
     }
 
-    /**
-     * Solo las filas del pivote: contarlas evita unir la tabla de equipos
-     * (withCount('equipos') unía 5.000 equipos por liga: 213 ms -> 3 ms).
-     *
-     * @return HasMany<LigaEquipo, $this>
-     */
+    /** Cuenta las filas del pivote: withCount('equipos') unía la tabla de equipos completa. */
     public function vinculosEquipos(): HasMany
     {
         return $this->hasMany(LigaEquipo::class);
@@ -68,7 +63,6 @@ class Liga extends Model
         return $this->hasOne(ImportacionLiga::class)->latestOfMany('importado_en');
     }
 
-    /** Busca por id de football-data (2021) o por código (PL). */
     #[Scope]
     protected function referencia(Builder $query, string|int $referencia): void
     {

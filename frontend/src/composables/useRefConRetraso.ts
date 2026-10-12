@@ -1,6 +1,6 @@
 import { customRef, type Ref } from 'vue'
 
-/** Un ref cuyos cambios se aplican con retraso: ideal para buscadores que llaman a la API. */
+/** Debounce: el valor se aplica cuando se deja de escribir. */
 export function useRefConRetraso<T>(inicial: T, retraso = 350): Ref<T> {
   let temporizador: ReturnType<typeof setTimeout> | undefined
   let valor = inicial

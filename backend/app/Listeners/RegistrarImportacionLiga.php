@@ -5,7 +5,6 @@ namespace App\Listeners;
 use App\Dominio\Futbol\Eventos\LigaImportada;
 use App\Models\ImportacionLiga;
 
-/** Guarda la auditoría de importaciones (la SPA la muestra como "última importación"). */
 class RegistrarImportacionLiga
 {
     public function handle(LigaImportada $evento): void

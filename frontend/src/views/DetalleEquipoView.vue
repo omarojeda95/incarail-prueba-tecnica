@@ -19,7 +19,6 @@ watch(
 
 const filtro = ref('')
 
-/** Plantel agrupado por línea (arqueros, defensas, mediocampistas, delanteros). */
 const grupos = computed(() => {
   const texto = filtro.value.toLowerCase()
   const jugadores = (equipo.value?.jugadores ?? []).filter(

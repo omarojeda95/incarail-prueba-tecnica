@@ -26,7 +26,6 @@ const SUJETOS: Record<string, string> = {
   Rol: 'Roles',
 }
 
-/** Catálogo de permisos agrupado por sujeto CASL, para armar el editor. */
 const grupos = computed(() => {
   const mapa = new Map<string, Permiso[]>()
   for (const permiso of permisos.datos.value ?? []) {
@@ -41,7 +40,6 @@ const grupos = computed(() => {
 const describir = (nombre: string) =>
   permisos.datos.value?.find((p) => p.nombre === nombre)?.descripcion ?? nombre
 
-// --- editor
 const editorAbierto = ref(false)
 const editando = ref<Rol | null>(null)
 const formulario = ref({ nombre: '', permisos: [] as string[] })
@@ -71,7 +69,6 @@ async function guardar() {
   }
 }
 
-// --- eliminación
 const eliminando = ref<Rol | null>(null)
 const procesando = ref(false)
 async function confirmarEliminacion() {

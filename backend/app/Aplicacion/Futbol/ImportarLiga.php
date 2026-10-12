@@ -12,12 +12,6 @@ use App\Models\LigaEquipo;
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Support\Facades\DB;
 
-/**
- * Comando: copia una liga, sus equipos y sus planteles a nuestra base.
- * Cuesta exactamente una petición a football-data. Todo se guarda en una
- * transacción (si algo falla no queda una liga a medias) y, al terminar,
- * se publica el evento LigaImportada.
- */
 final class ImportarLiga
 {
     public function __construct(
@@ -56,11 +50,7 @@ final class ImportarLiga
         return $liga;
     }
 
-    /**
-     * Upsert sobre la clave compuesta en vez de sync(): sync() lee, borra e
-     * inserta, y dos importaciones simultáneas de la misma liga (una petición
-     * y el job en cola) podían chocar con la clave primaria.
-     */
+    /** upsert y no sync(): sync() borra e inserta, y dos importaciones simultáneas chocaban en la PK. */
     private function vincularEquipos(Liga $liga, PlantelesLiga $planteles): void
     {
         $idsEquipos = array_map(fn (DatosEquipo $equipo) => $equipo->id, $planteles->equipos);

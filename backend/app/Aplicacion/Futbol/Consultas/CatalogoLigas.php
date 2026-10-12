@@ -8,11 +8,7 @@ use App\Dominio\Futbol\Excepciones\ProveedorNoDisponible;
 use App\Models\Liga;
 use Illuminate\Database\Eloquent\Builder;
 
-/**
- * Consulta: el listado de ligas. Siempre se responde desde nuestra base; el
- * catálogo se refresca desde football-data solo si está vencido, y si ese
- * refresco falla se responde igual con lo guardado (marcado desactualizado).
- */
+/** Si el catálogo está vencido intenta refrescarlo; si falla, responde lo guardado. */
 final class CatalogoLigas
 {
     public function __construct(private readonly SincronizarCatalogoLigas $sincronizar) {}

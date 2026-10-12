@@ -6,15 +6,7 @@ use App\Dominio\Futbol\Excepciones\LimiteDePeticionesAlcanzado;
 use Illuminate\Contracts\Cache\LockTimeoutException;
 use Illuminate\Contracts\Cache\Repository;
 
-/**
- * Registro en ventana deslizante de las peticiones enviadas en los últimos N
- * segundos, guardado en una caché compartida (Redis en Docker) bajo un lock
- * atómico: los procesos web, el worker y el scheduler gastan el mismo cupo.
- *
- * Una ventana fija permitiría el doble del límite alrededor del cambio de
- * minuto (10 a las 00:59 + 10 a las 01:00); la ventana deslizante nunca
- * envía más de $maximo peticiones en ningún intervalo de $ventanaSegundos.
- */
+/** Ventana deslizante y no por minuto de reloj: así no salen 10 a las 12:00:59 y otras 10 a las 12:01:00. */
 final class PresupuestoVentanaDeslizante implements PresupuestoPeticiones
 {
     public function __construct(
@@ -30,8 +22,7 @@ final class PresupuestoVentanaDeslizante implements PresupuestoPeticiones
         try {
             $this->cache->lock("{$this->clave}:lock", 5)->block($this->esperaLockSegundos, fn () => $this->tomarCupo());
         } catch (LockTimeoutException) {
-            // Otro proceso tiene el contador demasiado tiempo: se trata como falta de cupo
-            // (la importación va a la cola), no como un error del servidor.
+            // Otro proceso retiene el contador: es falta de cupo, no un error del servidor.
             throw new LimiteDePeticionesAlcanzado(max(1, $this->esperaLockSegundos));
         }
     }

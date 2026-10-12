@@ -4,7 +4,6 @@ namespace App\Aplicacion\Futbol\Consultas;
 
 use DateTimeInterface;
 
-/** Respuesta de una consulta más su procedencia, para que la API se la informe al cliente. */
 final readonly class ResultadoConsulta
 {
     public function __construct(

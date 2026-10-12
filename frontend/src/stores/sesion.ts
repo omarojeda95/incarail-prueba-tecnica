@@ -25,7 +25,7 @@ export const useSesionStore = defineStore('sesion', () => {
     establecer(respuesta)
   }
 
-  /** Restaura la sesión al recargar: la API devuelve habilidades actualizadas. */
+  /** Al recargar pide la sesión a la API: así los permisos llegan actualizados. */
   async function restaurar(): Promise<void> {
     if (lista.value) return
     try {

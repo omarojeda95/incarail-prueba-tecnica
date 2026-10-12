@@ -17,11 +17,7 @@ use Illuminate\Http\Client\Factory as HttpFactory;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Log;
 
-/**
- * Adaptador de football-data.org v4: la única clase que le habla por HTTP.
- * Cada petición toma antes un cupo del PresupuestoPeticiones compartido, y
- * los contadores del propio proveedor (cabeceras / 429) lo realimentan.
- */
+/** Única clase que habla con football-data. */
 final class ClienteFootballData implements ProveedorDatosFutbol
 {
     private const SEGUNDOS_REINICIO_POR_DEFECTO = 60;
@@ -102,7 +98,7 @@ final class ClienteFootballData implements ProveedorDatosFutbol
         return new ProveedorNoDisponible("football-data.org respondió HTTP {$respuesta->status()}.");
     }
 
-    /** El proveedor manda sobre su propio contador: alineamos nuestro presupuesto con él. */
+    /** Si football-data dice que no queda cupo, le creemos más que a nuestro contador. */
     private function sincronizarPresupuesto(Response $respuesta): void
     {
         $disponibles = $respuesta->header('X-Requests-Available-Minute');

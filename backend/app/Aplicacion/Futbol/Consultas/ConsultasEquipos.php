@@ -6,7 +6,6 @@ use App\Models\Equipo;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 
-/** Consultas sobre los equipos guardados. Nunca llaman a football-data. */
 final class ConsultasEquipos
 {
     /** @param  array{buscar?: string, liga_id?: int, tipo?: string, por_pagina?: int}  $filtros */

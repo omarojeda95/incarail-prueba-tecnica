@@ -1,6 +1,5 @@
 import { computed, onBeforeUnmount, ref } from 'vue'
 
-/** Segundos que faltan para poder reintentar algo (p. ej. el límite de football-data). */
 export function useCuentaRegresiva() {
   const restantes = ref(0)
   let intervalo: ReturnType<typeof setInterval> | undefined

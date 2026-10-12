@@ -4,7 +4,6 @@ namespace App\Aplicacion\Acceso;
 
 use App\Models\Usuario;
 
-/** Traduce los permisos del usuario a reglas CASL: [{action, subject}]. */
 final class ReglasCasl
 {
     /** @return list<array{action: string, subject: string}> */

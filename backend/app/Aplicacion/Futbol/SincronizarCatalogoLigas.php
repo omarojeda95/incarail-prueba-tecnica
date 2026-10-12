@@ -7,7 +7,6 @@ use App\Models\Liga;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
 
-/** Comando: actualiza el listado de ligas (una petición a football-data). */
 final class SincronizarCatalogoLigas
 {
     private const CLAVE_SINCRONIZADO_EN = 'futbol:catalogo:sincronizado-en';
@@ -44,7 +43,6 @@ final class SincronizarCatalogoLigas
             || ! Liga::query()->exists();
     }
 
-    /** Marca el catálogo como recién sincronizado (útil al sembrar datos de prueba). */
     public static function marcarSincronizado(): void
     {
         Cache::forever(self::CLAVE_SINCRONIZADO_EN, now()->getTimestamp());

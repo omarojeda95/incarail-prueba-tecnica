@@ -4,7 +4,6 @@ namespace App\Dominio\Futbol\Datos;
 
 use DateTimeImmutable;
 
-/** Una liga tal como la describe el proveedor, independiente de su formato JSON. */
 final readonly class DatosLiga
 {
     public function __construct(

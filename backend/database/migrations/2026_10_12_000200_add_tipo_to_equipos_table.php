@@ -5,10 +5,7 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
-/**
- * Clubes y selecciones comparten todos sus datos en football-data; se distinguen por el tipo.
- * enum crea una restricción CHECK: la base solo admite 'club' o 'seleccion'.
- */
+/** enum crea una restricción CHECK: la base solo admite 'club' o 'seleccion'. */
 return new class extends Migration
 {
     public function up(): void
@@ -23,7 +20,6 @@ return new class extends Migration
             ->whereIn('id', DB::table('liga_equipo')->select('equipo_id')->whereIn('liga_id', $competiciones))
             ->update(['tipo' => 'seleccion']);
 
-        // equipo_id es el club actual: un jugador no puede tener una selección como club.
         DB::table('jugadores')
             ->whereIn('equipo_id', DB::table('equipos')->select('id')->where('tipo', 'seleccion'))
             ->update(['equipo_id' => null]);

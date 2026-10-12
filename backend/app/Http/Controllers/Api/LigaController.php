@@ -32,7 +32,6 @@ class LigaController extends Controller
             ->setStatusCode(200);
     }
 
-    /** Encola la actualización de una liga ya listada (se ejecuta respetando el límite de peticiones). */
     public function importar(string $competition_id, ColaDeImportaciones $cola): JsonResponse
     {
         $liga = Liga::query()->referencia($competition_id)->firstOrFail();

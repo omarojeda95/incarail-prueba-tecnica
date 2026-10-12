@@ -10,16 +10,10 @@ use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 
-/**
- * Importa una liga en segundo plano. Si se agotó el presupuesto de
- * peticiones, el job vuelve a la cola justo hasta que se libere un cupo:
- * el worker nunca supera las 10 peticiones por minuto y nada se pierde.
- */
 class ImportarLigaJob implements ShouldBeUnique, ShouldQueue
 {
     use Queueable;
 
-    /** Errores inesperados permitidos antes de rendirse (las devoluciones a la cola no cuentan). */
     public int $maxExceptions = 3;
 
     public int $uniqueFor = 900;

@@ -1,11 +1,7 @@
 import { ref, shallowRef, type Ref } from 'vue'
 import { ErrorApi, aErrorApi } from '@/api/errores'
 
-/**
- * Estado de carga / error / datos de una llamada asíncrona. Las respuestas que
- * llegan fuera de orden se ignoran: escribir rápido en un buscador nunca
- * muestra resultados viejos.
- */
+/** Ignora las respuestas que llegan fuera de orden (escribir rápido en un buscador). */
 export function useAsincrono<T, A extends unknown[] = []>(funcion: (...args: A) => Promise<T>) {
   const datos = shallowRef<T | null>(null) as Ref<T | null>
   const cargando = ref(false)

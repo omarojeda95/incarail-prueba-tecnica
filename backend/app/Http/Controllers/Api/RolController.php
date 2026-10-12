@@ -43,7 +43,6 @@ class RolController extends Controller
         return response()->noContent();
     }
 
-    /** Catálogo de permisos con su equivalente CASL, para el editor de roles. */
     public function permisos(): JsonResponse
     {
         return response()->json([
